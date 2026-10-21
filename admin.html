@@ -26,8 +26,8 @@ body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
         
         <form id="login-form" class="space-y-4 text-left">
             <div>
-                <label class="block text-[11px] font-bold text-slate-400 mb-1">Email Admin</label>
-                <input type="email" id="admin-email" required class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-amber-400" placeholder="admin@8master.com">
+                <label class="block text-[11px] font-bold text-slate-400 mb-1">Pseudo Admin</label>
+                <input type="text" id="admin-username" required class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-amber-400" placeholder="VotrePseudo">
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 mb-1">Mot de passe</label>
@@ -97,14 +97,26 @@ body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
 </div>
 
 <script>
-const SUPABASE_URL = 'https://cqodgghbhxqhvkxchhx.supabase.co';
+// ✅ CORRECTION C1 : URL SUPABASE EXACTE
+const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl'; 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ✅ CORRECTION C5 : Protection XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+// ✅ CORRECTION M2 : Regex email
+function generateFakeEmail(username) {
+    return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`;
+}
 
 // --- GESTION DE LA CONNEXION ---
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('admin-email').value.trim();
+    const username = document.getElementById('admin-username').value.trim();
     const password = document.getElementById('admin-password').value;
     const errorEl = document.getElementById('login-error');
     const btn = document.getElementById('btn-login');
@@ -114,24 +126,23 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Vérification...';
 
     try {
-        // 1. Connexion
-        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (authError) throw new Error("Email ou mot de passe incorrect.");
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
+        if (authError) throw new Error("Pseudo ou mot de passe incorrect.");
 
-        // 2. Vérification stricte du statut Admin
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', authData.user.id)
-            .single();
+        const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('is_admin, is_banned').eq('id', authData.user.id).single();
 
         if (profileError || !profile || profile.is_admin !== true) {
             await supabaseClient.auth.signOut();
             throw new Error("Accès refusé : ce compte n'est pas administrateur.");
         }
+        
+        // ✅ CORRECTION p4 : Vérifier si l'admin est banni
+        if (profile.is_banned) {
+            await supabaseClient.auth.signOut();
+            throw new Error("Accès refusé : ce compte administrateur a été banni.");
+        }
 
-        // 3. Succès
-        document.getElementById('admin-email-display').textContent = authData.user.email;
+        document.getElementById('admin-email-display').textContent = `Connecté : ${username}`;
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('dashboard-screen').classList.remove('hidden');
         loadDashboardData();
@@ -179,12 +190,13 @@ async function loadDashboardData() {
 
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-800/30 transition';
+            // ✅ CORRECTION C5 : Application de escapeHtml
             tr.innerHTML = `
                 <td class="p-4 font-bold text-white flex items-center gap-2">
                     ${p.is_admin ? '<i class="fa-solid fa-crown text-amber-400" title="Admin"></i>' : ''}
-                    ${p.username_display}
+                    ${escapeHtml(p.username_display)}
                 </td>
-                <td class="p-4 text-slate-300">${p.whatsapp || 'Non renseigné'}</td>
+                <td class="p-4 text-slate-300">${escapeHtml(p.whatsapp || 'Non renseigné')}</td>
                 <td class="p-4 text-center font-bold text-amber-400">${p.elo_global}</td>
                 <td class="p-4 text-center text-slate-300">${p.games_won} / ${p.games_played}</td>
                 <td class="p-4 text-center">${statusBadge}</td>

@@ -104,12 +104,9 @@ body.light-theme .black-suit { color: #0f172a; }
         <button id="btn-show-profile" class="hidden bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 h-9 rounded-xl transition items-center gap-1.5">
             <i class="fa-solid fa-user"></i> Profil
         </button>
-        
-        <!-- BOUTON CONNEXION (Remplaçant de S'inscrire) -->
         <button id="btn-open-auth" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 h-9 rounded-xl transition flex items-center gap-1.5 shadow-md">
             <i class="fa-solid fa-right-to-bracket"></i> Connexion
         </button>
-        
         <button id="btn-logout" class="hidden bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 text-xs font-bold px-3 h-9 rounded-xl transition items-center gap-1.5">
             <i class="fa-solid fa-right-from-bracket"></i> Quitter
         </button>
@@ -140,6 +137,16 @@ body.light-theme .black-suit { color: #0f172a; }
                     <button type="button" data-count="5" class="ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs">5</button>
                 </div>
             </div>
+            
+            <!-- ✅ NOUVEAU : Choix du nombre de cartes pour la manche 1 -->
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Cartes par joueur (Manche 1)</span>
+                    <span id="cards-count-display" class="text-sm font-black text-amber-400">6</span>
+                </div>
+                <input type="range" id="cards-range-input" min="3" max="8" value="6" class="w-full cursor-pointer">
+            </div>
+
             <div>
                 <label for="ai-difficulty-select" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Difficulté</label>
                 <select id="ai-difficulty-select" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 px-3 text-white text-xs font-semibold focus:outline-none focus:border-amber-400">
@@ -206,6 +213,7 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="effect-zone"></div>
 </div>
 
+<!-- MODALES -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -232,18 +240,15 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- MODALE : CONNEXION / INSCRIPTION -->
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         
-        <!-- ONGLETS -->
         <div class="flex bg-slate-950/80 rounded-xl p-1 mb-6 border border-slate-800">
             <button id="tab-login" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition">Connexion</button>
             <button id="tab-register" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition">Inscription</button>
         </div>
 
-        <!-- ETAPE 1 : CONNEXION -->
         <div id="auth-login-step">
             <h2 class="text-2xl font-black text-amber-400 mb-1">Bon retour !</h2>
             <p class="text-xs text-slate-400 mb-6">Connectez-vous pour retrouver votre profil</p>
@@ -270,7 +275,6 @@ body.light-theme .black-suit { color: #0f172a; }
             </form>
         </div>
 
-        <!-- ETAPE 2 : INSCRIPTION -->
         <div id="auth-register-step" class="hidden">
             <div id="auth-step-1">
                 <h2 class="text-2xl font-black text-amber-400 mb-1">Créer un compte</h2>
@@ -490,6 +494,20 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- ✅ NOUVEAU : Modale pour choisir le nombre de cartes en tant que distributeur -->
+<div id="modal-card-count" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
+        <h3 class="text-2xl font-black text-amber-400 mb-2">Distribution</h3>
+        <p class="text-xs text-slate-400 mb-5">Vous distribuez. Combien de cartes par joueur ?</p>
+        <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-bold text-slate-300">Cartes :</span>
+            <span id="card-count-modal-display" class="text-2xl font-black text-amber-400">6</span>
+        </div>
+        <input type="range" id="card-count-modal-range" min="3" max="8" value="6" class="w-full cursor-pointer mb-5">
+        <button id="btn-confirm-card-count" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition">Distribuer</button>
+    </div>
+</div>
+
 <div id="board-winner-panel" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-40 hidden modal-entry">
     <h3 id="board-winner-title" class="text-lg font-black text-amber-400 mb-2">Victoire !</h3>
     <div id="board-summary-list" class="space-y-1.5 text-left bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-4 text-xs w-full max-w-sm max-h-[220px] overflow-y-auto"></div>
@@ -512,6 +530,7 @@ if (typeof Engine8Master === 'undefined') {
     throw new Error('engine-8master.js non chargé');
 }
 
+// ✅ CORRECTION C1 : URL SUPABASE EXACTE
 const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl'; 
 
@@ -525,16 +544,16 @@ if (SUPABASE_ANON_KEY.includes('COLLE_TA_CLE')) {
 </script>
 
 <script>
-/* ============================================================================
- *  index.html v2 — Logique Invité + Auth (Connexion / Inscription) + Profil
- * ========================================================================== */
-
 const CONFIG = Engine8Master.CONFIG;
 const SPEED_LEVELS = [ { key: 'slow', icon: '🐢', label: '3s', ms: 3000 }, { key: 'normal', icon: '⏱️', label: '2s', ms: 2000 }, { key: 'fast', icon: '🐇', label: '1.2s', ms: 1200 }, { key: 'turbo', icon: '⚡', label: '0.6s', ms: 600 } ];
 
 const state = {
     deckColor: 'red',
-    numDecks: 1, cardsPerPlayer: 6, aiCount: 2, aiDifficulty: 'medium', botSpeed: 'normal',
+    numDecks: 1, 
+    cardsPerPlayer: 6, // ✅ AJOUT : Nombre de cartes
+    aiCount: 2, 
+    aiDifficulty: 'medium', 
+    botSpeed: 'normal',
     soundEnabled: true, theme: 'dark', 
     animationsEnabled: true,
     flightDurationMs: 450, bubbleDurationMs: 3500, cascadeDraw: true,
@@ -554,13 +573,9 @@ function updateSpeedButton() {
     if ($('speed-label')) $('speed-label').textContent = level.label;
 }
 
-/* ============================== SAUVEGARDE DE L'ÉTAT ============================== */
 function saveGameState() {
-    if (game && !game.gameOver) {
-        localStorage.setItem('8master-active-game', JSON.stringify(game));
-    } else {
-        localStorage.removeItem('8master-active-game');
-    }
+    if (game && !game.gameOver) { localStorage.setItem('8master-active-game', JSON.stringify(game)); } 
+    else { localStorage.removeItem('8master-active-game'); }
 }
 
 function loadGameState() {
@@ -582,14 +597,10 @@ function loadGameState() {
             }
             return true;
         }
-    } catch (e) {
-        console.warn("Erreur de restauration de l'état", e);
-        localStorage.removeItem('8master-active-game');
-    }
+    } catch (e) { console.warn("Erreur de restauration de l'état", e); localStorage.removeItem('8master-active-game'); }
     return false;
 }
 
-/* ============================== AUDIO ============================== */
 const AudioFX = {
     ctx: null,
     init() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } },
@@ -611,10 +622,9 @@ const AudioFX = {
     }
 };
 
-/* ============================== STORAGE & THEME ============================== */
 const Storage = {
     save() {
-        try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, sound: state.soundEnabled, theme: state.theme })); } catch (e) {}
+        try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, sound: state.soundEnabled, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {}
     },
     load() {
         try { const raw = localStorage.getItem('8master-config'); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -627,7 +637,6 @@ function applyTheme(theme) {
     else { document.body.classList.remove('light-theme'); if($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; }
 }
 
-/* ============================== HELPERS JEU ============================== */
 function escapeHtml(str) { return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
 function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
@@ -662,26 +671,18 @@ function logJournal(text, highlight = false) { state.journal.unshift({ text, hig
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
-/* ============================== AUTHENTIFICATION ============================== */
-let currentAuthTab = 'login'; // 'login' ou 'register'
-
+let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
-    const tabLogin = $('tab-login');
-    const tabRegister = $('tab-register');
-    const loginStep = $('auth-login-step');
-    const registerStep = $('auth-register-step');
-
+    const tabLogin = $('tab-login'), tabRegister = $('tab-register'), loginStep = $('auth-login-step'), registerStep = $('auth-register-step');
     if (tab === 'login') {
         tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition';
         tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
-        loginStep.classList.remove('hidden');
-        registerStep.classList.add('hidden');
+        loginStep.classList.remove('hidden'); registerStep.classList.add('hidden');
     } else {
         tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
         tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition';
-        loginStep.classList.add('hidden');
-        registerStep.classList.remove('hidden');
+        loginStep.classList.add('hidden'); registerStep.classList.remove('hidden');
     }
 }
 
@@ -692,33 +693,23 @@ function openAuthModal() {
     $('auth-form').reset(); $('auth-error').classList.add('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden');
 }
 
+function generateFakeEmail(username) {
+    return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`;
+}
+
 async function handleLoginSubmit(e) {
     e.preventDefault();
     if (!supabaseClient) return alert("Erreur fatale : Clé Supabase manquante.");
+    const username = $('login-username').value.trim(), password = $('login-password').value;
+    const errorEl = $('login-error'), btn = $('btn-login-submit');
+    errorEl.classList.add('hidden'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
     
-    const username = $('login-username').value.trim();
-    const password = $('login-password').value;
-    const errorEl = $('login-error');
-    const btn = $('btn-login-submit');
-
-    errorEl.classList.add('hidden');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
-
-    // On régénère l'email factice basé sur le pseudo
-    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@8master.game`;
-
     try {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
         if (error) throw new Error("Pseudo ou mot de passe incorrect.");
-        
-        $('modal-auth').classList.add('hidden');
-        checkAuth(); // Met à jour l'interface (bouton Profil)
-    } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.classList.remove('hidden');
-    } finally {
-        btn.disabled = false; btn.innerHTML = 'Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>';
-    }
+        $('modal-auth').classList.add('hidden'); checkAuth();
+    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); } 
+    finally { btn.disabled = false; btn.innerHTML = 'Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>'; }
 }
 
 function validateAuthForm() {
@@ -749,12 +740,11 @@ async function handleAuthSubmit() {
     if (!supabaseClient) return alert("Erreur fatale : Clé Supabase manquante.");
     const btn = $('btn-auth-submit'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
     const { username, whatsapp, password } = state.tempUserData;
-    const fakeEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@8master.game`;
 
     try {
-        const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: password, options: { data: { username: username, whatsapp: whatsapp } } });
+        const { error } = await supabaseClient.auth.signUp({ email: generateFakeEmail(username), password: password, options: { data: { username: username, whatsapp: whatsapp } } });
         if (error) throw error;
-        const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: password });
+        const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password: password });
         if (loginError) throw loginError;
         alert("Inscription réussie ! Vous êtes connecté."); $('modal-auth').classList.add('hidden'); checkAuth();
     } catch (err) {
@@ -766,23 +756,23 @@ async function handleAuthSubmit() {
 
 async function checkAuth() {
     if (!supabaseClient) return;
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        const { data: profile } = await supabaseClient.from('profiles').select('is_banned').eq('id', session.user.id).single();
-        if (profile && profile.is_banned) {
-            await supabaseClient.auth.signOut();
-            alert("⛔ Votre compte a été banni par l'administrateur.");
-            window.location.reload(); return;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            const { data: profile } = await supabaseClient.from('profiles').select('is_banned').eq('id', session.user.id).single();
+            if (profile && profile.is_banned) {
+                await supabaseClient.auth.signOut(); alert("⛔ Votre compte a été banni par l'administrateur."); window.location.reload(); return;
+            }
+            state.user = session.user;
+            $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
+            $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
+            if (session.user.user_metadata.username) $('player-name-input').value = session.user.user_metadata.username;
+        } else {
+            state.user = null;
+            $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
+            $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
         }
-        state.user = session.user;
-        $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
-        $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
-        if (session.user.user_metadata.username) $('player-name-input').value = session.user.user_metadata.username;
-    } else {
-        state.user = null;
-        $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
-        $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
-    }
+    } catch (err) { console.warn("checkAuth error:", err); state.user = null; }
 }
 
 async function showProfile() {
@@ -804,23 +794,25 @@ async function showProfile() {
 
 async function saveGameResult(winner) {
     if (!state.user) return;
-    const humanWon = winner && winner.isHuman, eloChange = humanWon ? 25 : -15; 
+    const human = humanPlayer();
+    if (!human) return;
+
+    const humanWon = winner && winner.isHuman;
+    const eloChange = humanWon ? 25 : -15; 
+    const humanScore = game.scores[human.id];
+
     try {
-        const { data: gameData, error: gameError } = await supabaseClient.from('games').insert([{ mode: 'solo', status: 'finished', host_id: state.user.id, player_count: game.players.length, winner_id: humanWon ? state.user.id : null, finished_at: new Date().toISOString() }]).select().single();
-        if (gameError) throw gameError;
-
-        const human = humanPlayer();
-        await supabaseClient.from('game_players').insert([{ game_id: gameData.id, user_id: state.user.id, display_name: human.name, seat: 0, is_human: true, final_score: game.scores[0], is_winner: humanWon, is_eliminated: human.eliminated }]);
-
-        const { data: profile } = await supabaseClient.from('profiles').select('elo_global, games_played, games_won').eq('id', state.user.id).single();
-        if (profile) {
-            let newElo = Math.max(0, profile.elo_global + eloChange);
-            await supabaseClient.from('profiles').update({ elo_global: newElo, elo_solo: newElo, games_played: profile.games_played + 1, games_won: profile.games_won + (humanWon ? 1 : 0) }).eq('id', state.user.id);
-        }
-    } catch (err) { console.error("❌ Erreur sauvegarde:", err); }
+        const { error } = await supabaseClient.rpc('process_game_result', {
+            p_human_id: state.user.id,
+            p_human_score: humanScore,
+            p_is_winner: humanWon,
+            p_player_count: game.players.length,
+            p_elo_change: eloChange
+        });
+        if (error) throw error;
+    } catch (err) { console.error("❌ Erreur sauvegarde RPC:", err); }
 }
 
-/* ============================== LOGIQUE DU JEU ============================== */
 function updateUI() {
     if (!game) return;
     const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
@@ -983,12 +975,64 @@ async function executeAiTurn(bot) {
     scheduleNextTurn();
 }
 
+// ✅ NOUVEAU : Modale pour choisir le nombre de cartes (Round 2+)
+function openCardCountModal(maxCards, callback) {
+    const range = $('card-count-modal-range');
+    range.min = CONFIG.MIN_CARDS_PER_DECK;
+    range.max = maxCards;
+    let chosen = Math.min(6, maxCards);
+    range.value = chosen;
+    $('card-count-modal-display').innerText = chosen;
+
+    const newRange = range.cloneNode(true);
+    range.parentNode.replaceChild(newRange, range);
+    newRange.addEventListener('input', (e) => {
+        chosen = parseInt(e.target.value, 10);
+        $('card-count-modal-display').innerText = chosen;
+    });
+
+    const btn = $('btn-confirm-card-count');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => {
+        $('modal-card-count').classList.add('hidden');
+        AudioFX.play('click');
+        callback(chosen);
+    });
+
+    $('modal-card-count').classList.remove('hidden');
+}
+
 function prepareNextRound() {
-    if (!game || state.roundProcessing) return; state.roundProcessing = true;
-    if (game.roundNumber === 0) { startRoundImmediate(); return; }
-    const maxCards = game.config.maxCards;
-    game.config.cardsPerPlayer = CONFIG.MIN_CARDS_PER_DECK + Math.floor(Math.random() * (maxCards - CONFIG.MIN_CARDS_PER_DECK + 1));
-    startRoundImmediate();
+    if (!game || state.roundProcessing) return; 
+    state.roundProcessing = true;
+    
+    if (game.roundNumber === 0) { 
+        // Manche 1 : on utilise le nombre de cartes choisi dans le menu
+        game.config.cardsPerPlayer = state.cardsPerPlayer;
+        startRoundImmediate(); 
+        return; 
+    }
+
+    // Manche 2+ : Le distributeur est celui qui a le plus de points (logique du moteur)
+    const active = game.players.filter(p => !p.eliminated);
+    const maxScore = Math.max(...active.map(p => game.scores[p.id]));
+    const candidates = active.filter(p => game.scores[p.id] === maxScore);
+    const dealer = candidates[Math.floor(Math.random() * candidates.length)];
+    const human = humanPlayer();
+
+    if (dealer.isHuman) {
+        // Si c'est l'humain qui distribue, on lui demande combien de cartes
+        openCardCountModal(game.config.maxCards, (chosen) => {
+            game.config.cardsPerPlayer = chosen;
+            startRoundImmediate();
+        });
+    } else {
+        // Si c'est un bot, il choisit un nombre aléatoire
+        const maxCards = game.config.maxCards;
+        game.config.cardsPerPlayer = CONFIG.MIN_CARDS_PER_DECK + Math.floor(Math.random() * (maxCards - CONFIG.MIN_CARDS_PER_DECK + 1));
+        startRoundImmediate();
+    }
 }
 
 function startRoundImmediate() {
@@ -1044,17 +1088,44 @@ function startGameSession() {
     state.aiDifficulty = $('ai-difficulty-select').value;
     const players = [{ id: 0, name: rawName, isHuman: true }];
     for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
-    game = Engine8Master.createGame({ players, cardsPerPlayer: 6, cardsPerDeck: 8, numDecks: 1 });
+    
+    // ✅ CORRECTION : On passe le nombre de cartes choisi dans le menu
+    game = Engine8Master.createGame({ 
+        players, 
+        cardsPerPlayer: state.cardsPerPlayer, 
+        cardsPerDeck: 8, 
+        numDecks: 1 
+    });
     
     state.journal = []; state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
     prepareNextRound();
 }
 
-/* ============================== ÉVÉNEMENTS UI ============================== */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
-    const saved = Storage.load(); if (saved) { state.botSpeed = saved.botSpeed || 'normal'; state.theme = saved.theme || 'dark'; applyTheme(state.theme); }
+    const saved = Storage.load(); 
+    if (saved) { 
+        state.botSpeed = saved.botSpeed || 'normal'; 
+        state.theme = saved.theme || 'dark'; 
+        state.aiCount = saved.aiCount || 2;
+        state.aiDifficulty = saved.difficulty || 'medium';
+        state.cardsPerPlayer = saved.cardsPerPlayer || 6; // ✅ Restauration du choix
+        
+        applyTheme(state.theme); 
+        updateSpeedButton();
+        
+        // Appliquer les préférences au DOM
+        $('ai-difficulty-select').value = state.aiDifficulty;
+        $('cards-range-input').value = state.cardsPerPlayer;
+        $('cards-count-display').innerText = state.cardsPerPlayer;
+        
+        document.querySelectorAll('.ai-count-btn').forEach(b => {
+            if (parseInt(b.getAttribute('data-count')) === state.aiCount) {
+                b.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs";
+            }
+        });
+    }
     
     // AUTH & PROFIL
     $('btn-open-auth').onclick = openAuthModal;
@@ -1094,7 +1165,17 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-auth-submit').onclick = handleAuthSubmit;
     $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); checkAuth(); };
 
-    document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = "ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs"); e.target.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; state.aiCount = parseInt(e.target.getAttribute('data-count')); }; });
+    // ✅ NOUVEAU : Écouteur pour le nombre de cartes au setup
+    $('cards-range-input').addEventListener('input', (e) => {
+        state.cardsPerPlayer = parseInt(e.target.value, 10);
+        $('cards-count-display').innerText = state.cardsPerPlayer;
+        Storage.save();
+    });
+
+    document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = "ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs"); e.target.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
+    $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
+    $('player-name-input').addEventListener('change', Storage.save);
+    
     $('btn-start-game-final').onclick = startGameSession;
     
     $('btn-voluntary-draw').onclick = handleHumanDraw;
@@ -1108,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } 
     };
     
-    $('btn-bot-speed').onclick = () => { let idx = SPEED_LEVELS.findIndex(s => s.key === state.botSpeed); state.botSpeed = SPEED_LEVELS[(idx + 1) % SPEED_LEVELS.length].key; updateSpeedButton(); };
+    $('btn-bot-speed').onclick = () => { let idx = SPEED_LEVELS.findIndex(s => s.key === state.botSpeed); state.botSpeed = SPEED_LEVELS[(idx + 1) % SPEED_LEVELS.length].key; updateSpeedButton(); Storage.save(); };
     $('btn-show-rules').onclick = () => $('modal-rules').classList.remove('hidden');
     $('btn-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
     $('btn-modal-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
@@ -1138,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             $('setup-screen').classList.remove('hidden');
             $('game-board').classList.add('hidden');
         }
-    });
+    }).catch(err => console.warn(err));
 });
 </script>
 </body>

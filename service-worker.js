@@ -1,12 +1,13 @@
 /* ============================================================================
  *  service-worker.js — 8-Master PWA
- *  Version : 5.3 (Mise à jour pour forcer le rafraîchissement du cache)
+ *  Version : 11 (Forcer la mise à jour du cache)
  * ========================================================================== */
 
-const CACHE_NAME = '8master';
+const CACHE_NAME = '8master-v11';
 const ASSETS = [
   './',
   './index.html',
+  './admin.html',
   './engine-8master.js',
   './manifest.json',
   './icon-192.svg',
@@ -18,7 +19,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting()) // Force l'activation immédiate du nouveau SW
+      .then(() => self.skipWaiting()) // Force l'activation immédiate
       .catch((err) => console.error('[SW] install error:', err))
   );
 });
@@ -55,7 +56,14 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => caches.match('./index.html'));
+      }).catch(() => {
+        // ✅ CORRECTION m3 : Fallback HTML uniquement pour la navigation
+        // Si c'est une page, on renvoie index.html. Si c'est une image ou un script, on renvoie une erreur.
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        return Response.error();
+      });
     })
   );
 });
