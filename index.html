@@ -176,26 +176,12 @@ body.light-theme .black-suit { color: #0f172a; }
             <button id="btn-show-directory" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-address-book"></i> Annuaire des joueurs
             </button>
-
-            <div class="flex items-center gap-2 my-2">
-                <div class="h-px bg-slate-800 flex-1"></div>
-                <span class="text-xs text-slate-500 font-bold">OU</span>
-                <div class="h-px bg-slate-800 flex-1"></div>
-            </div>
-
-            <button id="btn-quick-match" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-bolt"></i> Match Rapide (1v1)
-            </button>
-            
-            <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-plus"></i> Créer une salle privée
-            </button>
-
+            <div class="flex items-center gap-2 my-2"><div class="h-px bg-slate-800 flex-1"></div><span class="text-xs text-slate-500 font-bold">OU</span><div class="h-px bg-slate-800 flex-1"></div></div>
+            <button id="btn-quick-match" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Match Rapide (1v1)</button>
+            <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Créer une salle privée</button>
             <div>
                 <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
-                <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code
-                </button>
+                <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code</button>
             </div>
             <div id="multi-error" class="hidden text-red-400 text-xs font-bold text-center bg-red-950/50 py-2 rounded-lg border border-red-500/30"></div>
         </div>
@@ -207,9 +193,7 @@ body.light-theme .black-suit { color: #0f172a; }
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-directory" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         <h2 class="text-xl font-black text-white mb-4">Joueurs en ligne</h2>
-        <div id="directory-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
-            <!-- La liste sera injectée ici -->
-        </div>
+        <div id="directory-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
     </div>
 </div>
 
@@ -312,7 +296,8 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="effect-zone"></div>
 </div>
 
-<!-- MODALES DU JEU -->
+<!-- MODALES DU JEU (Règles, Profil, Auth, Picker, Game Over...) -->
+<!-- NOTE : J'ai gardé tout le code des modales qui suit pour que rien ne casse -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -342,16 +327,13 @@ body.light-theme .black-suit { color: #0f172a; }
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-        
         <div class="flex bg-slate-950/80 rounded-xl p-1 mb-6 border border-slate-800">
             <button id="tab-login" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition">Connexion</button>
             <button id="tab-register" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition">Inscription</button>
         </div>
-
         <div id="auth-login-step">
             <h2 class="text-2xl font-black text-amber-400 mb-1">Bon retour !</h2>
             <p class="text-xs text-slate-400 mb-6">Connectez-vous pour retrouver votre profil</p>
-
             <form id="login-form" class="space-y-4 text-left" onsubmit="event.preventDefault();">
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Pseudo</label>
@@ -368,23 +350,18 @@ body.light-theme .black-suit { color: #0f172a; }
                     </div>
                 </div>
                 <div id="login-error" class="hidden text-red-400 text-xs font-bold text-center bg-red-950/50 py-2 rounded-lg border border-red-500/30"></div>
-                <button type="submit" id="btn-login-submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition mt-2">
-                    Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>
-                </button>
+                <button type="submit" id="btn-login-submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition mt-2">Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i></button>
             </form>
         </div>
-
         <div id="auth-register-step" class="hidden">
             <div id="auth-step-1">
                 <h2 class="text-2xl font-black text-amber-400 mb-1">Créer un compte</h2>
                 <p class="text-xs text-slate-400 mb-6">Rejoignez 8-Master</p>
-
                 <form id="auth-form" class="space-y-3 text-left" onsubmit="event.preventDefault();">
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Pseudo</label>
                         <input type="text" id="auth-username" required minlength="3" maxlength="16" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 px-3 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition" placeholder="Ex: RenardRuse">
                     </div>
-                    
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Numéro WhatsApp</label>
                         <div class="flex gap-2">
@@ -409,7 +386,6 @@ body.light-theme .black-suit { color: #0f172a; }
                             <input type="tel" id="auth-whatsapp" required maxlength="10" class="w-[50%] bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 px-3 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition" placeholder="0102030405">
                         </div>
                     </div>
-                    
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Mot de passe</label>
                         <div class="relative">
@@ -417,7 +393,6 @@ body.light-theme .black-suit { color: #0f172a; }
                             <button type="button" class="toggle-password absolute right-3 top-3 text-slate-500 hover:text-white transition" data-target="auth-password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
-                    
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Confirmation</label>
                         <div class="relative">
@@ -425,19 +400,13 @@ body.light-theme .black-suit { color: #0f172a; }
                             <button type="button" class="toggle-password absolute right-3 top-3 text-slate-500 hover:text-white transition" data-target="auth-password-confirm"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
-
                     <div id="auth-error" class="hidden text-red-400 text-xs font-bold text-center bg-red-950/50 py-2 rounded-lg border border-red-500/30"></div>
-
-                    <button type="button" id="btn-auth-next" disabled class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition mt-2 opacity-50 cursor-not-allowed">
-                        Suivant <i class="fa-solid fa-arrow-right text-xs ml-1"></i>
-                    </button>
+                    <button type="button" id="btn-auth-next" disabled class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition mt-2 opacity-50 cursor-not-allowed">Suivant <i class="fa-solid fa-arrow-right text-xs ml-1"></i></button>
                 </form>
             </div>
-
             <div id="auth-step-2" class="hidden">
                 <h2 class="text-2xl font-black text-amber-400 mb-1">Récapitulatif</h2>
                 <p class="text-xs text-slate-400 mb-6">Vérifiez vos informations</p>
-                
                 <div class="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3 mb-6 text-left">
                     <div class="flex justify-between border-b border-slate-800 pb-2">
                         <span class="text-xs text-slate-400">Pseudo</span>
@@ -452,14 +421,9 @@ body.light-theme .black-suit { color: #0f172a; }
                         <span class="text-sm font-bold text-white">••••••••</span>
                     </div>
                 </div>
-
                 <div class="flex gap-3">
-                    <button id="btn-auth-back" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-xs">
-                        Modifier
-                    </button>
-                    <button id="btn-auth-submit" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition text-xs flex justify-center items-center gap-2">
-                        Confirmer <i class="fa-solid fa-check"></i>
-                    </button>
+                    <button id="btn-auth-back" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-xs">Modifier</button>
+                    <button id="btn-auth-submit" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition text-xs flex justify-center items-center gap-2">Confirmer <i class="fa-solid fa-check"></i></button>
                 </div>
             </div>
         </div>
@@ -526,7 +490,7 @@ if (typeof Engine8Master === 'undefined') {
     throw new Error('engine-8master.js non chargé');
 }
 
-const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co'; 
+const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co'; // ⚠️ Vérifie que c'est la bonne URL
 const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl'; 
 
 let supabaseClient = null;
@@ -556,6 +520,29 @@ let currentMultiGameId = null;
 let realtimeSubscription = null;
 let pollingInterval = null;
 let invitePollingInterval = null;
+
+// ✅ SAUVEGARDE DE L'ÉCRAN ACTUEL
+function saveUIState() {
+    const view = $('waiting-room').classList.contains('hidden') === false ? 'lobby' : 
+                 ($('game-board').classList.contains('hidden') === false ? 'solo' : 'menu');
+    localStorage.setItem('8master-view', view);
+    if (view === 'lobby') localStorage.setItem('8master-room', $('room-code-display').textContent);
+}
+
+function restoreUIState() {
+    const view = localStorage.getItem('8master-view');
+    if (view === 'lobby') {
+        const code = localStorage.getItem('8master-room');
+        if (code && code !== '8M-XXXX') {
+            $('setup-screen').classList.add('hidden');
+            openWaitingRoom(code, false, code.startsWith('QM-'));
+            return true;
+        }
+    } else if (view === 'solo') {
+        if (loadGameState()) return true;
+    }
+    return false;
+}
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
@@ -1074,6 +1061,7 @@ function launchConfetti() {
 function startGameSession() {
     if (!state.user) { alert("Connectez-vous pour jouer."); return; }
     updateStatus('solo');
+    saveUIState();
 
     const rawName = $('player-name-input').value.trim() || 'Invité';
     state.aiDifficulty = $('ai-difficulty-select').value;
@@ -1087,7 +1075,6 @@ function startGameSession() {
     prepareNextRound();
 }
 
-// ✅ MULTIJOUEUR & STATUTS
 async function updateStatus(status) {
     if (!state.user) return;
     try { await supabaseClient.rpc('rpc_set_status', { p_status: status }); } catch(e) {}
@@ -1122,7 +1109,7 @@ async function checkIncomingInvitations() {
 
         if (data && data.length > 0) {
             const inv = data[0]; 
-            const inSolo = (game && !game.gameOver && game.mode === 'solo'); // Approximation
+            const inSolo = (game && !game.gameOver && game.mode === 'solo'); 
             
             $('invite-text').innerHTML = `<b>${inv.profiles.username_display}</b> vous invite à rejoindre sa partie.<br><br>${inSolo ? '(⚠️ Vous êtes en partie Solo, rejoindre annulera votre partie)' : ''}`;
             $('modal-invite-received').classList.remove('hidden');
@@ -1173,7 +1160,6 @@ async function openDirectory() {
     }
 }
 
-// ✅ LOBBY MULTIJOUEUR
 async function openMultiModal() {
     if (!state.user) {
         alert("Veuillez vous connecter pour jouer en multijoueur.");
@@ -1248,6 +1234,7 @@ $('btn-join-room').onclick = async () => {
 
 async function openWaitingRoom(code, isHost, quickMatch = false) {
     $('waiting-room').classList.remove('hidden');
+    saveUIState();
     if (quickMatch) {
         $('quick-match-search').classList.remove('hidden');
         $('private-match-info').classList.add('hidden');
@@ -1305,6 +1292,8 @@ $('btn-leave-room').onclick = () => {
     $('room-code-display').textContent = '8M-XXXX';
     currentMultiGameId = null;
     updateStatus('available');
+    saveUIState();
+    $('setup-screen').classList.remove('hidden');
 };
 
 $('btn-start-multi-game').onclick = () => {
@@ -1312,19 +1301,18 @@ $('btn-start-multi-game').onclick = () => {
 };
 
 function returnToSetup() {
-    updateStatus('available');
+    if (state.user) updateStatus('available');
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     localStorage.removeItem('8master-active-game');
+    localStorage.setItem('8master-view', 'menu');
     ['modal-rules','modal-suit-picker','modal-scoreboard','modal-card-count','modal-settings','board-winner-panel','modal-game-over','journal-panel','modal-multi','modal-directory','modal-invite-received','waiting-room'].forEach(id => {
         const el = $(id); if (el) el.classList.add('hidden');
     });
     $('setup-screen').classList.remove('hidden');
     $('game-board').classList.add('hidden');
-    $('waiting-room').classList.add('hidden');
 }
 
-// INITIALISATION GENERALE
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
     const saved = Storage.load(); 
@@ -1435,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
 
     checkAuth().then(() => {
-        if (!loadGameState()) {
+        if (!restoreUIState()) {
             $('setup-screen').classList.remove('hidden');
             $('game-board').classList.add('hidden');
         }
