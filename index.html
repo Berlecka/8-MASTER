@@ -92,6 +92,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </header>
 
+<!-- ÉCRAN MENU -->
 <main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-5 sm:p-6 my-auto text-center hidden">
     <div id="setup-step-1">
         <h2 class="text-xl font-black text-amber-400 mb-0.5">Configuration</h2>
@@ -133,6 +134,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
+<!-- MODAL MULTI -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -142,13 +144,14 @@ body.light-theme .black-suit { color: #0f172a; }
             <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Créer une salle privée</button>
             <div class="flex items-center gap-2 my-2"><div class="h-px bg-slate-800 flex-1"></div><span class="text-xs text-slate-500 font-bold">OU</span><div class="h-px bg-slate-800 flex-1"></div></div>
             <div>
-                <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
+                <input type="text" id="join-code-input" maxlength="7" oninput="this.value = this.value.toUpperCase()" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
                 <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- MODAL CREATE ROOM -->
 <div id="modal-create-room" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-create-room" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -164,6 +167,41 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- ÉCRAN LOBBY (salle d'attente) -->
+<div id="waiting-room" class="fixed inset-0 bg-slate-950 z-[90] flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative shadow-2xl">
+        <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg"><i class="fa-solid fa-users"></i></div>
+        <h2 class="text-2xl font-black text-white mb-1">Salle d'attente</h2>
+        <p class="text-xs text-slate-400 mb-5" id="lobby-subtitle">Partagez le code pour inviter des joueurs</p>
+
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 mb-5">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">Code de la salle</p>
+            <div class="flex items-center justify-center gap-3">
+                <span id="lobby-code" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
+                <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition" title="Copier"><i class="fa-solid fa-copy"></i></button>
+            </div>
+        </div>
+
+        <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-5 text-left">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-slate-400 uppercase">Joueurs connectés</h3>
+                <span id="lobby-player-count" class="text-xs font-black text-amber-400">1</span>
+            </div>
+            <div id="lobby-players-list" class="space-y-2"></div>
+        </div>
+
+        <button id="btn-host-start" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 mb-2 opacity-50 cursor-not-allowed" disabled>
+            <i class="fa-solid fa-play"></i> Lancer la partie
+        </button>
+        <p id="lobby-hint" class="text-[10px] text-slate-500 mb-3">Il faut au moins 2 joueurs pour lancer</p>
+
+        <button id="btn-leave-lobby" class="w-full bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl transition text-xs">
+            <i class="fa-solid fa-right-from-bracket"></i> Quitter la salle
+        </button>
+    </div>
+</div>
+
+<!-- PLATEAU -->
 <div id="game-board" class="w-full max-w-4xl felt-table p-3 sm:p-5 flex flex-col justify-between min-h-[580px] relative hidden my-auto">
     <div class="flex flex-wrap justify-between items-center bg-slate-950/70 backdrop-blur rounded-2xl p-2.5 border border-slate-800/80 mb-3 gap-2 text-xs">
         <div class="flex items-center gap-1.5"><span class="text-slate-400">Tour :</span><span id="hud-current-turn" class="font-black text-amber-400">Vous</span></div>
@@ -191,14 +229,9 @@ body.light-theme .black-suit { color: #0f172a; }
         </div>
     </div>
     <div id="effect-zone"></div>
-    <div id="waiting-host-overlay" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-30 hidden">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-amber-500 mb-4"></div>
-        <h3 class="text-lg font-black text-amber-400 mb-2">En attente de l'hôte…</h3>
-        <p id="waiting-host-msg" class="text-xs text-slate-400">La partie va démarrer automatiquement</p>
-        <button id="btn-waiting-cancel" class="mt-4 bg-red-950/60 text-red-300 px-4 py-2 rounded-xl text-xs hidden">Quitter la partie</button>
-    </div>
 </div>
 
+<!-- PROFIL -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -213,6 +246,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- AUTH -->
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -324,6 +358,7 @@ let _watchdogLastIdx = -1, _watchdogTick = 0;
 let currentPhoneLength = 10;
 let createRoomCards = 6;
 
+// Multijoueur
 let currentMultiGameId = null;
 let multiStateChannel = null;
 let multiEventsChannel = null;
@@ -333,7 +368,11 @@ let multiIsHost = false;
 let globalInvitePollInterval = null;
 let ignoreGameId = null;
 
-/* ──────────────── Utilitaires ──────────────── */
+// Lobby
+let lobbyChannel = null;
+let lobbyPollInterval = null;
+let currentLobbyCode = null;
+
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
 function updateSpeedButton() { const l = getSpeedLevel(state.botSpeed); if ($('speed-icon')) $('speed-icon').textContent = l.icon; if ($('speed-label')) $('speed-label').textContent = l.label; }
@@ -342,23 +381,20 @@ function escapeHtml(str) { return String(str).replaceAll('&','&amp;').replaceAll
 function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
 function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
 
-/* ──────────────── Persistance de vue ──────────────── */
+/* ─────── Vues et persistance ─────── */
+function showOnlyScreen(screenId) {
+    ['setup-screen', 'game-board', 'waiting-room'].forEach(id => $(id)?.classList.add('hidden'));
+    ['modal-multi','modal-create-room','modal-profile','modal-auth','modal-rules','modal-suit-picker','modal-card-count','modal-game-over','board-winner-panel'].forEach(id => $(id)?.classList.add('hidden'));
+    if (screenId) $(screenId)?.classList.remove('hidden');
+}
 function saveView(view, multiGameId) {
     try {
         localStorage.setItem('8master-view', view);
         if (view === 'multi' && multiGameId) localStorage.setItem('8master-multi-game-id', multiGameId);
-        else localStorage.removeItem('8master-multi-game-id');
+        else if (view !== 'multi') localStorage.removeItem('8master-multi-game-id');
     } catch (e) {}
 }
-function clearView() {
-    try { localStorage.removeItem('8master-view'); localStorage.removeItem('8master-multi-game-id'); } catch (e) {}
-}
-function showOnlyScreen(screen) {
-    ['setup-screen', 'game-board'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
-    ['modal-multi', 'modal-create-room', 'modal-profile', 'modal-auth', 'modal-rules', 'modal-suit-picker', 'modal-card-count', 'modal-game-over', 'board-winner-panel'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
-    const priv = $('private-room-overlay'); if (priv) priv.classList.add('hidden');
-    if (screen) $(screen)?.classList.remove('hidden');
-}
+function clearView() { try { localStorage.removeItem('8master-view'); localStorage.removeItem('8master-multi-game-id'); } catch (e) {} }
 
 function saveGameState() { if (game && !game.gameOver && !currentMultiGameId) { localStorage.setItem('8master-active-game', JSON.stringify(game)); } else { localStorage.removeItem('8master-active-game'); } }
 function loadSoloGameState() {
@@ -368,10 +404,10 @@ function loadSoloGameState() {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.players && parsed.players.length > 0) {
             game = parsed;
-            $('game-board').classList.remove('hidden'); $('setup-screen').classList.add('hidden');
+            showOnlyScreen('game-board');
             updateUI();
             if (game.roundEnded) { if (game.lastRoundSummary) showRoundEndModal(game.lastRoundSummary, game.lastWinnerId); }
-            else if (game.gameOver) { showGameOverModal(); }
+            else if (game.gameOver) showGameOverModal();
             else setTimeout(() => scheduleNextTurn(), 500);
             return true;
         }
@@ -379,7 +415,7 @@ function loadSoloGameState() {
     return false;
 }
 
-/* ──────────────── Audio ──────────────── */
+/* ─────── Audio ─────── */
 const AudioFX = {
     ctx: null,
     init() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } },
@@ -402,14 +438,13 @@ const AudioFX = {
     }
 };
 
-/* ──────────────── Storage config ──────────────── */
 const Storage = {
     save() { try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {} },
     load() { try { const raw = localStorage.getItem('8master-config'); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
 };
 function applyTheme(theme) { state.theme = theme; if (theme === 'light') { document.body.classList.add('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-sun'; } else { document.body.classList.remove('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; } }
 
-/* ──────────────── Rendu cartes ──────────────── */
+/* ─────── Rendu cartes ─────── */
 function renderCardHTML(card, isPlayable = false) {
     const suitClass = card.isRed ? 'red-suit' : 'black-suit', playableClass = isPlayable ? 'playable' : '';
     return `<div class="playing-card ${playableClass} ${suitClass} flex flex-col justify-between p-1 bg-white select-none"><div class="card-corner text-left font-black text-[10px] leading-none">${card.value}<br><span>${card.suit}</span></div><div class="card-center text-center font-black text-xl my-auto">${card.suit}</div><div class="card-corner text-left font-black text-[10px] leading-none transform rotate-180">${card.value}<br><span>${card.suit}</span></div></div>`;
@@ -440,7 +475,7 @@ function showEffectBanner(text) {
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p => !p.isHuman).findIndex(p => p.id === bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
-/* ──────────────── Auth ──────────────── */
+/* ─────── Auth ─────── */
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -561,7 +596,7 @@ async function saveGameResult(winner) {
     } catch (err) { console.error('saveGameResult:', err); }
 }
 
-/* ──────────────── UI ──────────────── */
+/* ─────── UI ─────── */
 function updateUI() {
     if (!game) return;
     const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
@@ -644,79 +679,155 @@ function scheduleNextTurn() {
     }
 }
 
-/* ═══════════════════ MULTIJOUEUR ═══════════════════ */
+/* ═══════════════════ LOBBY ═══════════════════ */
 
-async function createPrivateRoom(cardsPerPlayer) {
-    if (!state.user) { alert('Connectez-vous.'); return; }
-    const displayName = getDisplayName();
-    const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', {
-        p_display_name: displayName, p_cards_per_player: cardsPerPlayer
+async function enterLobby(gameId, isHost) {
+    currentMultiGameId = gameId;
+    multiIsHost = isHost;
+    saveView('multi', gameId);
+
+    // Charge le code et la liste des joueurs
+    const gameState = await fetchGameState(gameId);
+    if (!gameState) { alert('Salle introuvable.'); await leaveMultiplayer(); return; }
+
+    currentLobbyCode = gameState.join_code;
+    $('lobby-code').textContent = currentLobbyCode;
+    $('lobby-subtitle').textContent = isHost ? 'Partagez le code pour inviter des joueurs' : "En attente de l'hôte pour lancer la partie";
+    $('btn-host-start').style.display = isHost ? '' : 'none';
+
+    showOnlyScreen('waiting-room');
+    await refreshLobbyPlayers();
+
+    // Realtime sur game_players pour rafraîchir la liste
+    if (lobbyChannel) supabaseClient.removeChannel(lobbyChannel);
+    lobbyChannel = supabaseClient.channel('lobby-' + gameId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: 'game_id=eq.' + gameId },
+            () => refreshLobbyPlayers())
+        .subscribe();
+
+    // Realtime sur games pour détecter le lancement
+    if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
+    multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
+            payload => {
+                if (payload.new.status === 'active' && payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
+                    // L'hôte a lancé : on bascule sur le plateau
+                    cleanupLobby();
+                    attachToGame(gameId, isHost);
+                }
+            })
+        .subscribe();
+
+    // Polling de secours (2s)
+    if (lobbyPollInterval) clearInterval(lobbyPollInterval);
+    lobbyPollInterval = setInterval(async () => {
+        const gs = await fetchGameState(gameId);
+        if (!gs) { cleanupLobby(); leaveMultiplayer(); return; }
+        if (gs.status === 'active' && gs.state_json && Object.keys(gs.state_json).length > 0) {
+            cleanupLobby();
+            attachToGame(gameId, isHost);
+        } else if (gs.status === 'abandoned') {
+            cleanupLobby();
+            alert("L'hôte a quitté la salle.");
+            leaveMultiplayer();
+        } else {
+            await refreshLobbyPlayers();
+        }
+    }, 2000);
+}
+
+async function refreshLobbyPlayers() {
+    if (!currentMultiGameId) return;
+    const players = await fetchGamePlayers(currentMultiGameId);
+    if (!players) return;
+    $('lobby-player-count').textContent = players.length;
+
+    const list = $('lobby-players-list');
+    list.innerHTML = '';
+    players.forEach((p, i) => {
+        const isMe = p.user_id === state.user?.id;
+        const isHostRow = i === 0;
+        list.innerHTML += `
+            <div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-amber-500/30 text-amber-400 flex items-center justify-center text-[10px] font-black">
+                        ${isHostRow ? '👑' : '👤'}
+                    </div>
+                    <span class="text-sm font-bold text-white">${escapeHtml(p.display_name)}${isMe ? ' <span class="text-[10px] text-amber-400">(vous)</span>' : ''}</span>
+                </div>
+                <span class="text-[10px] font-bold ${isHostRow ? 'text-amber-400' : 'text-emerald-400'}">${isHostRow ? 'Hôte' : 'Prêt'}</span>
+            </div>`;
     });
-    if (error) { alert('Erreur : ' + error.message); return; }
-    showPrivateRoomOverlay(code);
-}
 
-async function joinPrivateRoom(code) {
-    if (!state.user) { alert('Connectez-vous.'); return; }
-    showSearchOverlay('Connexion à la salle...');
-    const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
-        p_code: code, p_display_name: getDisplayName()
-    });
-    hideSearchOverlay();
-    if (error) { alert('Erreur : ' + error.message); return; }
-    await attachToGame(gameId, false);
-}
-
-function showSearchOverlay(text) {
-    let ov = $('multi-search-overlay');
-    if (!ov) {
-        ov = document.createElement('div');
-        ov.id = 'multi-search-overlay';
-        ov.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
-        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2></div>`;
-        document.body.appendChild(ov);
+    // Activer/désactiver le bouton "Lancer"
+    const startBtn = $('btn-host-start');
+    const hint = $('lobby-hint');
+    if (multiIsHost) {
+        if (players.length >= 2) {
+            startBtn.disabled = false;
+            startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            hint.textContent = 'Prêt à lancer';
+            hint.className = 'text-[10px] text-emerald-400 mb-3';
+        } else {
+            startBtn.disabled = true;
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            hint.textContent = 'Il faut au moins 2 joueurs pour lancer';
+            hint.className = 'text-[10px] text-slate-500 mb-3';
+        }
+    } else {
+        startBtn.style.display = 'none';
+        hint.textContent = "En attente de l'hôte…";
+        hint.className = 'text-[10px] text-amber-400 mb-3';
     }
-    $('multi-search-text').textContent = text;
-    ov.classList.remove('hidden');
 }
-function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
 
-function showPrivateRoomOverlay(code) {
-    let ov = $('private-room-overlay');
-    if (!ov) {
-        ov = document.createElement('div');
-        ov.id = 'private-room-overlay';
-        ov.className = 'fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4';
-        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><h2 class="text-xl font-black text-white mb-2">Salle créée</h2><p class="text-xs text-slate-400 mb-4">Partagez ce code</p><div class="bg-slate-950 border border-slate-700 rounded-2xl py-4 mb-4"><div id="private-room-code" class="text-3xl font-black text-amber-400 tracking-widest"></div></div><p class="text-[11px] text-slate-500 mb-4">Dès qu'un joueur rejoint, la partie démarre automatiquement.</p><button id="btn-copy-private-code" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs mb-2">Copier le code</button><button id="btn-cancel-private" class="w-full bg-red-950/60 text-red-300 py-2 rounded-xl text-xs">Annuler</button></div>`;
-        document.body.appendChild(ov);
+function cleanupLobby() {
+    if (lobbyChannel) { supabaseClient.removeChannel(lobbyChannel); lobbyChannel = null; }
+    if (lobbyPollInterval) { clearInterval(lobbyPollInterval); lobbyPollInterval = null; }
+    currentLobbyCode = null;
+}
+
+async function hostStartGame() {
+    if (!currentMultiGameId || !state.user) return;
+    const players = await fetchGamePlayers(currentMultiGameId);
+    if (!players || players.length < 2) { alert('Il faut au moins 2 joueurs.'); return; }
+
+    const btn = $('btn-host-start');
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lancement...';
+
+    try {
+        const gs = await fetchGameState(currentMultiGameId);
+        const cardsPerPlayer = 6;
+
+        const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
+        const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
+        Engine8Master.startRound(initial);
+        const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
+
+        const { error } = await supabaseClient.rpc('rpc_start_game', {
+            p_game_id: currentMultiGameId,
+            p_initial_state: initial,
+            p_current_turn_user_id: firstTurnEngineId
+        });
+        if (error) throw error;
+
+        cleanupLobby();
+        await attachToGame(currentMultiGameId, true);
+    } catch (err) {
+        alert('Erreur : ' + err.message);
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Lancer la partie';
     }
-    $('private-room-code').textContent = code;
-    ov.classList.remove('hidden');
-    $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
-    $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
-    const watch = setInterval(async () => {
-        const { data: g, error } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
-        if (error || !g) { clearInterval(watch); return; }
-        if (g.player_count >= 2) { clearInterval(watch); ov.classList.add('hidden'); await attachToGame(g.id, true); }
-    }, 800);
 }
 
-/** Lit l'état via RPC SECURITY DEFINER (fiable même en RLS stricte). */
+/* ═══════════════════ MULTI (partie en cours) ═══════════════════ */
+
 async function fetchGameState(gameId) {
-    try {
-        const { data, error } = await supabaseClient.rpc('rpc_get_game_state', { p_game_id: gameId });
-        if (error) return null;
-        return data;
-    } catch (e) { return null; }
+    try { const { data, error } = await supabaseClient.rpc('rpc_get_game_state', { p_game_id: gameId }); return error ? null : data; }
+    catch (e) { return null; }
 }
-
-/** Lit la liste des joueurs via RPC SECURITY DEFINER. */
 async function fetchGamePlayers(gameId) {
-    try {
-        const { data, error } = await supabaseClient.rpc('rpc_get_game_players', { p_game_id: gameId });
-        if (error) return null;
-        return data;
-    } catch (e) { return null; }
+    try { const { data, error } = await supabaseClient.rpc('rpc_get_game_players', { p_game_id: gameId }); return error ? null : data; }
+    catch (e) { return null; }
 }
 
 async function attachToGame(gameId, isHost) {
@@ -725,49 +836,25 @@ async function attachToGame(gameId, isHost) {
     multiLastProcessedEventId = 0;
     saveView('multi', gameId);
 
-    ['setup-screen','modal-multi','modal-create-room'].forEach(id => $(id)?.classList.add('hidden'));
-    $('game-board').classList.remove('hidden');
+    showOnlyScreen('game-board');
 
-    const waitingOverlay = $('waiting-host-overlay');
     const gameState = await fetchGameState(gameId);
+    if (!gameState) { alert('Partie introuvable.'); await leaveMultiplayer(); return; }
 
-    if (!gameState) { alert('Partie introuvable.'); leaveMultiplayer(); return; }
-
-    // Si l'hôte et pas de state : on pousse le state initial
-    if (isHost && (!gameState.state_json || Object.keys(gameState.state_json).length === 0)) {
-        waitingOverlay.classList.add('hidden');
-        await pushInitialState(gameId);
-    } else if (gameState.state_json && Object.keys(gameState.state_json).length > 0) {
-        waitingOverlay.classList.add('hidden');
+    if (gameState.state_json && Object.keys(gameState.state_json).length > 0) {
         applyMultiState(gameState.state_json);
-    } else {
-        // Invité, en attente
-        waitingOverlay.classList.remove('hidden');
-        const cancelBtn = $('btn-waiting-cancel');
-        if (cancelBtn) {
-            cancelBtn.classList.add('hidden');
-            setTimeout(() => { if (waitingOverlay && !waitingOverlay.classList.contains('hidden')) cancelBtn.classList.remove('hidden'); }, 15000);
-            cancelBtn.onclick = () => leaveMultiplayer();
-        }
     }
 
-    // Realtime
     if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
     multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
             payload => {
-                if (payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
-                    waitingOverlay.classList.add('hidden');
-                    applyMultiState(payload.new.state_json);
-                }
+                if (payload.new.state_json && Object.keys(payload.new.state_json).length > 0) applyMultiState(payload.new.state_json);
             })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 const st = await fetchGameState(gameId);
-                if (st && st.state_json && Object.keys(st.state_json).length > 0) {
-                    waitingOverlay.classList.add('hidden');
-                    applyMultiState(st.state_json);
-                }
+                if (st && st.state_json && Object.keys(st.state_json).length > 0) applyMultiState(st.state_json);
             }
         });
 
@@ -779,39 +866,11 @@ async function attachToGame(gameId, isHost) {
             .subscribe();
     }
 
-    // Polling de secours (1s) avec arrêt dès chargement
     if (multiPollInterval) clearInterval(multiPollInterval);
     multiPollInterval = setInterval(async () => {
-        if (game && game.players && game.players.length > 0 && waitingOverlay.classList.contains('hidden')) return;
         const st = await fetchGameState(gameId);
-        if (st && st.state_json && Object.keys(st.state_json).length > 0) {
-            waitingOverlay.classList.add('hidden');
-            applyMultiState(st.state_json);
-        }
-    }, 1000);
-}
-
-async function pushInitialState(gameId) {
-    // Attente courte pour laisser l'invité s'enregistrer côté BDD
-    await new Promise(r => setTimeout(r, 1200));
-
-    const players = await fetchGamePlayers(gameId);
-    if (!players || players.length < 2) {
-        // Retry jusqu'à ce que le 2e joueur soit visible
-        setTimeout(() => pushInitialState(gameId), 2000);
-        return;
-    }
-    const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
-    const gs = await fetchGameState(gameId);
-    const cardsPerPlayer = 6;
-
-    const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
-    Engine8Master.startRound(initial);
-    const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
-    await supabaseClient.rpc('rpc_push_state', {
-        p_game_id: gameId, p_new_state: initial, p_current_turn_user_id: firstTurnEngineId
-    });
-    applyMultiState(initial);
+        if (st && st.state_json && Object.keys(st.state_json).length > 0) applyMultiState(st.state_json);
+    }, 2500);
 }
 
 function applyMultiState(remoteState) {
@@ -858,18 +917,59 @@ async function sendMultiAction(action) {
 
 async function leaveMultiplayer() {
     const gid = currentMultiGameId;
+    cleanupLobby();
     if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
     if (multiEventsChannel) { supabaseClient.removeChannel(multiEventsChannel); multiEventsChannel = null; }
     if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
     if (gid) { ignoreGameId = gid; try { await supabaseClient.rpc('rpc_leave_game', { p_game_id: gid }); } catch (e) {} }
     currentMultiGameId = null;
     multiLastProcessedEventId = 0;
-    $('waiting-host-overlay').classList.add('hidden');
     clearView();
     returnToSetup();
 }
 
-/* ──────────────── Actions humaines (solo + multi) ──────────────── */
+/* ─────── Création / Jonction ─────── */
+async function createPrivateRoom(cardsPerPlayer) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', {
+        p_display_name: getDisplayName(), p_cards_per_player: cardsPerPlayer
+    });
+    if (error) { alert('Erreur : ' + error.message); return; }
+    const gs = await supabaseClient.from('games').select('id').eq('join_code', code).single();
+    if (gs.error || !gs.data) { alert('Erreur : impossible de récupérer la salle.'); return; }
+    await enterLobby(gs.data.id, true);
+}
+
+async function joinPrivateRoom(code) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    if (code.length !== 7 || !code.startsWith('8M-')) {
+        alert('Le code doit être au format 8M-XXXX.');
+        return;
+    }
+    showSearchOverlay('Connexion à la salle...');
+    const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
+        p_code: code, p_display_name: getDisplayName()
+    });
+    hideSearchOverlay();
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await enterLobby(gameId, false);
+}
+
+function showSearchOverlay(text) {
+    let ov = $('multi-search-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'multi-search-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2></div>`;
+        document.body.appendChild(ov);
+    }
+    $('multi-search-text').textContent = text;
+    ov.classList.remove('hidden');
+}
+function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
+
+/* ─────── Actions humaines ─────── */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
@@ -910,7 +1010,6 @@ async function handleHumanPlay(idx) {
     if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
     scheduleNextTurn();
 }
-
 async function handleHumanDraw() {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer();
@@ -938,7 +1037,6 @@ async function handleHumanDraw() {
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
-
 async function executeAiTurn(bot) {
     if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
     const playable = Engine8Master.getPlayableCards(game, bot.id);
@@ -960,7 +1058,6 @@ async function executeAiTurn(bot) {
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
-
 function openCardCountModal(maxCards, callback) {
     const range = $('card-count-modal-range');
     range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
@@ -972,7 +1069,6 @@ function openCardCountModal(maxCards, callback) {
     newBtn.addEventListener('click', () => { $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
     $('modal-card-count').classList.remove('hidden');
 }
-
 function prepareNextRound() {
     if (!game || state.roundProcessing) return;
     state.roundProcessing = true;
@@ -990,7 +1086,6 @@ function prepareNextRound() {
         startRoundImmediate();
     }
 }
-
 function startRoundImmediate() {
     state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
@@ -1000,7 +1095,6 @@ function startRoundImmediate() {
     processEvents(result.events.filter(e => !['DEAL_HAND', 'STARTING_CARD', 'TURN_CHANGED'].includes(e.type)));
     setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 400);
 }
-
 function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.lastRoundSummary = summary; game.lastWinnerId = winnerId; saveGameState();
@@ -1015,7 +1109,6 @@ function showRoundEndModal(summary, winnerId) {
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
     updateUI();
 }
-
 function showGameOverModal() {
     const ranking = Engine8Master.buildRanking(game), winner = ranking.find(r => !r.eliminated) || ranking[0], humanWon = winner && winner.isHuman;
     saveGameResult(winner);
@@ -1026,7 +1119,6 @@ function showGameOverModal() {
     $('modal-game-over').classList.remove('hidden');
     if (humanWon) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
 }
-
 function launchConfetti() {
     for (let i = 0; i < 40; i++) {
         const c = document.createElement('div'); c.className = 'confetti';
@@ -1034,7 +1126,6 @@ function launchConfetti() {
         document.body.appendChild(c); setTimeout(() => c.remove(), 3500);
     }
 }
-
 function startGameSession() {
     if (!state.user) { alert('Connectez-vous.'); return; }
     const rawName = getDisplayName();
@@ -1044,62 +1135,55 @@ function startGameSession() {
     game = Engine8Master.createGame({ players, cardsPerPlayer: state.cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     saveView('solo');
-    $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
+    showOnlyScreen('game-board');
     prepareNextRound();
 }
-
 function returnToSetup() {
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     localStorage.removeItem('8master-active-game');
     clearView();
-    $('setup-screen').classList.remove('hidden');
-    $('game-board').classList.add('hidden');
+    showOnlyScreen('setup-screen');
 }
 
-/* ──────────────── Polling global d'invitation ──────────────── */
+/* ─────── Polling global (retrouver une partie en cours) ─────── */
 function startGlobalInvitePoll() {
     if (globalInvitePollInterval) clearInterval(globalInvitePollInterval);
     globalInvitePollInterval = setInterval(async () => {
         if (!state.user) return;
         if (currentMultiGameId) return;
         if (game && !game.gameOver) return;
-        const priv = $('private-room-overlay');
-        if (priv && !priv.classList.contains('hidden')) return;
         try {
             const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
             if (error || !data || !data.found) return;
             if (data.game_id === ignoreGameId) return;
             if (data.status === 'finished' || data.status === 'abandoned') return;
-            await attachToGame(data.game_id, data.is_host);
+            if (data.status === 'lobby') await enterLobby(data.game_id, data.is_host);
+            else if (data.status === 'active' && data.state_json && Object.keys(data.state_json).length > 0) await attachToGame(data.game_id, data.is_host);
         } catch (e) {}
     }, 2000);
 }
 
-/* ──────────────── Restauration de la vue au démarrage ──────────────── */
+/* ─────── Restauration de la vue au démarrage ─────── */
 async function restoreViewAfterAuth() {
     const view = localStorage.getItem('8master-view');
     const gid = localStorage.getItem('8master-multi-game-id');
 
     if (!state.user) {
-        // Pas connecté : on ne peut pas restaurer le multi
         if (view === 'solo' && loadSoloGameState()) return;
-        showOnlyScreen('setup-screen');
-        return;
+        showOnlyScreen('setup-screen'); return;
     }
 
     if (view === 'multi' && gid) {
-        const gameState = await fetchGameState(gid);
-        if (gameState && (gameState.status === 'lobby' || gameState.status === 'active')) {
-            await attachToGame(gid, gameState.is_host);
-            return;
-        }
-        clearView();
+        const gs = await fetchGameState(gid);
+        if (gs) {
+            if (gs.status === 'lobby') { await enterLobby(gid, gs.is_host); return; }
+            if (gs.status === 'active' && gs.state_json && Object.keys(gs.state_json).length > 0) { await attachToGame(gid, gs.is_host); return; }
+            if (gs.status === 'finished') { clearView(); }
+        } else { clearView(); }
     }
 
     if (view === 'solo' && loadSoloGameState()) return;
-
-    // Fallback menu
     showOnlyScreen('setup-screen');
     saveView('setup');
 }
@@ -1107,14 +1191,10 @@ async function restoreViewAfterAuth() {
 /* ═══════════════════ DOM READY ═══════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
-
-    // Thème + config sauvegardée
     const saved = Storage.load();
     if (saved) {
-        state.botSpeed = saved.botSpeed || 'normal';
-        state.theme = saved.theme || 'dark';
-        state.aiCount = saved.aiCount || 2;
-        state.aiDifficulty = saved.difficulty || 'medium';
+        state.botSpeed = saved.botSpeed || 'normal'; state.theme = saved.theme || 'dark';
+        state.aiCount = saved.aiCount || 2; state.aiDifficulty = saved.difficulty || 'medium';
         state.cardsPerPlayer = saved.cardsPerPlayer || 6;
         applyTheme(state.theme); updateSpeedButton();
         $('ai-difficulty-select').value = state.aiDifficulty;
@@ -1150,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-auth-submit').onclick = handleAuthSubmit;
     $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); await leaveMultiplayer(); await checkAuth(); showOnlyScreen('setup-screen'); };
 
-    // Config solo
+    // Config
     $('cards-range-input').addEventListener('input', (e) => { state.cardsPerPlayer = parseInt(e.target.value, 10); $('cards-count-display').innerText = state.cardsPerPlayer; Storage.save(); });
     document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = 'ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs'); e.target.className = 'ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs'; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
@@ -1159,7 +1239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Solo
     $('btn-start-game-final').onclick = startGameSession;
 
-    // Multijoueur
+    // Multi
     $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
     $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
     $('btn-create-room').onclick = () => {
@@ -1178,14 +1258,23 @@ document.addEventListener('DOMContentLoaded', () => {
         await joinPrivateRoom(code);
     };
 
-    // Boutons plateau
+    // Lobby
+    $('btn-host-start').onclick = hostStartGame;
+    $('btn-leave-lobby').onclick = () => leaveMultiplayer();
+    $('btn-copy-code').onclick = () => {
+        if (!currentLobbyCode) return;
+        navigator.clipboard.writeText(currentLobbyCode);
+        $('btn-copy-code').innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i>';
+        setTimeout(() => { $('btn-copy-code').innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 1500);
+    };
+
+    // Plateau
     $('btn-voluntary-draw').onclick = handleHumanDraw;
     $('deck-pile').onclick = () => { if (state.isHumanTurn && !state.isAiThinking && !state.isAnimating) handleHumanDraw(); };
     $('btn-sort-hand').onclick = () => { const h = humanPlayer(); if (h) { Engine8Master.sortHand(h); updateUI(); } };
     $('btn-abandon').onclick = () => {
         if (!confirm('Quitter la partie ?')) return;
-        if (currentMultiGameId) leaveMultiplayer();
-        else returnToSetup();
+        if (currentMultiGameId) leaveMultiplayer(); else returnToSetup();
     };
 
     $('btn-bot-speed').onclick = () => { let idx = SPEED_LEVELS.findIndex(s => s.key === state.botSpeed); state.botSpeed = SPEED_LEVELS[(idx + 1) % SPEED_LEVELS.length].key; updateSpeedButton(); Storage.save(); };
@@ -1215,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); if (currentMultiGameId) applyMultiState(game); else prepareNextRound(); };
     $('btn-new-game').onclick = () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); };
 
-    // Watchdog IA (solo uniquement)
+    // Watchdog IA solo
     setInterval(() => {
         if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing || currentMultiGameId) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
         const cur = game.players[game.currentPlayerIdx];
