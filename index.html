@@ -859,12 +859,10 @@ async function attachToGame(gameId, isHost) {
         applyMultiState(gameState.state_json);
     }
 
-    // Nettoyage des anciens canaux
     if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
     if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
     if (multiPollInterval) clearInterval(multiPollInterval);
 
-    // 1. ÉCOUTE DES MISES À JOUR DU JEU (Pour les deux joueurs)
     multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
             payload => {
@@ -879,7 +877,6 @@ async function attachToGame(gameId, isHost) {
             }
         });
 
-    // 2. ÉCOUTE DES ACTIONS (Uniquement pour l'Hôte)
     if (isHost) {
         multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'game_id=eq.' + gameId },
@@ -887,28 +884,25 @@ async function attachToGame(gameId, isHost) {
             .subscribe();
     }
 
-    // 3. LE FILET DE SÉCURITÉ : Polling toutes les 1.5 secondes
     multiPollInterval = setInterval(async () => {
-        // 3a. Pour l'invité : on vérifie si l'état du jeu a changé
         if (!isHost) {
             const st = await fetchGameState(gameId);
             if (st && st.state_json && Object.keys(st.state_json).length > 0) {
-                if (JSON.stringify(game) !== JSON.stringify(st.state_json)) {
+                // Comparaison intelligente (on ignore isHuman pour éviter la boucle infinie)
+                const serverStateStr = JSON.stringify(st.state_json, (k, v) => k === 'isHuman' ? undefined : v);
+                const localStateStr = JSON.stringify(game, (k, v) => k === 'isHuman' ? undefined : v);
+                if (serverStateStr !== localStateStr) {
                     applyMultiState(st.state_json);
                 }
             }
-        } 
-        // 3b. Pour l'hôte : on vérifie si l'invité a envoyé une action qu'on aurait ratée
-        else {
-            const { data } = await supabaseClient.from('game_events')
+        } else {
+            const { data, error } = await supabaseClient.from('game_events')
                 .select('*')
                 .eq('game_id', gameId)
                 .gt('id', multiLastProcessedEventId)
                 .order('id', { ascending: true });
-            
-            if (data && data.length > 0) {
-                data.forEach(ev => handleRemoteAction(ev));
-            }
+            if (error) { console.error('[poll hôte]', error); return; }
+            if (data && data.length > 0) data.forEach(ev => handleRemoteAction(ev));
         }
     }, 1500);
 }
@@ -940,7 +934,9 @@ async function handleRemoteAction(eventRow) {
     if (action.type === 'PLAY_CARD')        result = Engine8Master.playCard(game, playerId, action.cardIndex);
     else if (action.type === 'DRAW_CARD')   result = Engine8Master.drawCard(game, playerId);
     else if (action.type === 'CHOOSE_SUIT') result = Engine8Master.chooseSuit(game, playerId, action.suit);
+    
     if (!result || !result.valid) { console.warn('Action distante invalide:', action, result?.reason); return; }
+    
     const nextTurn = game.players[game.currentPlayerIdx];
     await supabaseClient.rpc('rpc_push_state', {
         p_game_id: currentMultiGameId, p_new_state: game,
@@ -948,11 +944,29 @@ async function handleRemoteAction(eventRow) {
         p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
     });
     applyMultiState(game);
+    
+    const roundEndEv = result.events.find(e => e.type === 'ROUND_ENDED');
+    if (roundEndEv) {
+        showRoundEndModal(roundEndEv.summary, roundEndEv.winnerId);
+        return;
+    }
+    if (game.gameOver) { showGameOverModal(); return; }
     processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
 }
 
 async function sendMultiAction(action) {
-    await supabaseClient.rpc('rpc_send_action', { p_game_id: currentMultiGameId, p_action: action });
+    if (!currentMultiGameId) return;
+    const { error } = await supabaseClient.rpc('rpc_send_action', {
+        p_game_id: currentMultiGameId,
+        p_action: action
+    });
+    if (error) {
+        console.error('[sendMultiAction] ❌ Échec envoi action:', error);
+        alert('Impossible d\'envoyer l\'action : ' + error.message);
+        state.isHumanTurn = true;
+        state.isAnimating = false;
+        updateUI();
+    }
 }
 
 async function leaveMultiplayer() {
@@ -1014,6 +1028,7 @@ async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
     if (!card || !Engine8Master.isCardPlayable(game, card)) return;
+    
     if (currentMultiGameId) {
         if (multiIsHost) {
             const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
@@ -1028,14 +1043,24 @@ async function handleHumanPlay(idx) {
             const next = game.players[game.currentPlayerIdx];
             await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
             applyMultiState(game);
-            if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); }
+            if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
+            const roundEndEv = result.events.find(e => e.type === 'ROUND_ENDED');
+            if (roundEndEv) { showRoundEndModal(roundEndEv.summary, roundEndEv.winnerId); return; }
+            if (game.gameOver) { showGameOverModal(); return; }
         } else {
-            await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
             state.isHumanTurn = false; updateUI();
             $('action-banner').innerText = 'Action envoyée, en attente...';
+            await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
+            setTimeout(async () => {
+                if (!state.isHumanTurn && currentMultiGameId) {
+                    const st = await fetchGameState(currentMultiGameId);
+                    if (st && st.state_json) applyMultiState(st.state_json);
+                }
+            }, 4000);
         }
         return;
     }
+    
     const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
     const toRect = $('discard-pile-container').getBoundingClientRect();
     state.isAnimating = true; state.isHumanTurn = false;
@@ -1050,6 +1075,7 @@ async function handleHumanPlay(idx) {
     if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
     scheduleNextTurn();
 }
+
 async function handleHumanDraw() {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer();
@@ -1063,9 +1089,15 @@ async function handleHumanDraw() {
             await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
             applyMultiState(game);
         } else {
-            await sendMultiAction({ type: 'DRAW_CARD' });
             state.isHumanTurn = false; updateUI();
             $('action-banner').innerText = 'Pioche envoyée, en attente...';
+            await sendMultiAction({ type: 'DRAW_CARD' });
+            setTimeout(async () => {
+                if (!state.isHumanTurn && currentMultiGameId) {
+                    const st = await fetchGameState(currentMultiGameId);
+                    if (st && st.state_json) applyMultiState(st.state_json);
+                }
+            }, 4000);
         }
         return;
     }
@@ -1077,6 +1109,7 @@ async function handleHumanDraw() {
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
+
 async function executeAiTurn(bot) {
     if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
     const playable = Engine8Master.getPlayableCards(game, bot.id);
@@ -1098,6 +1131,7 @@ async function executeAiTurn(bot) {
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
+
 function openCardCountModal(maxCards, callback) {
     const range = $('card-count-modal-range');
     range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
@@ -1109,6 +1143,7 @@ function openCardCountModal(maxCards, callback) {
     newBtn.addEventListener('click', () => { $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
     $('modal-card-count').classList.remove('hidden');
 }
+
 function prepareNextRound() {
     if (!game || state.roundProcessing) return;
     state.roundProcessing = true;
@@ -1126,6 +1161,7 @@ function prepareNextRound() {
         startRoundImmediate();
     }
 }
+
 function startRoundImmediate() {
     state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
@@ -1135,6 +1171,7 @@ function startRoundImmediate() {
     processEvents(result.events.filter(e => !['DEAL_HAND', 'STARTING_CARD', 'TURN_CHANGED'].includes(e.type)));
     setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 400);
 }
+
 function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.lastRoundSummary = summary; game.lastWinnerId = winnerId; saveGameState();
@@ -1149,6 +1186,7 @@ function showRoundEndModal(summary, winnerId) {
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
     updateUI();
 }
+
 function showGameOverModal() {
     const ranking = Engine8Master.buildRanking(game), winner = ranking.find(r => !r.eliminated) || ranking[0], humanWon = winner && winner.isHuman;
     saveGameResult(winner);
@@ -1159,6 +1197,7 @@ function showGameOverModal() {
     $('modal-game-over').classList.remove('hidden');
     if (humanWon) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
 }
+
 function launchConfetti() {
     for (let i = 0; i < 40; i++) {
         const c = document.createElement('div'); c.className = 'confetti';
@@ -1166,6 +1205,7 @@ function launchConfetti() {
         document.body.appendChild(c); setTimeout(() => c.remove(), 3500);
     }
 }
+
 function startGameSession() {
     if (!state.user) { alert('Connectez-vous.'); return; }
     const rawName = getDisplayName();
@@ -1178,6 +1218,7 @@ function startGameSession() {
     showOnlyScreen('game-board');
     prepareNextRound();
 }
+
 function returnToSetup() {
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
