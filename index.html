@@ -173,9 +173,8 @@ body.light-theme .black-suit { color: #0f172a; }
         <p class="text-xs text-slate-400 mb-6">Jouez avec vos amis</p>
 
         <div class="space-y-4">
-            <!-- ✅ NOUVEAU : Bouton Match Rapide -->
             <button id="btn-quick-match" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-bolt"></i> Partie Rapide (1v1)
+                <i class="fa-solid fa-bolt"></i> Match Rapide (1v1)
             </button>
 
             <div class="flex items-center gap-2 my-2">
@@ -208,14 +207,25 @@ body.light-theme .black-suit { color: #0f172a; }
 <!-- SALLE D'ATTENTE -->
 <div id="waiting-room" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center hidden z-50 p-4">
     <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative">
-        <h2 class="text-xl font-black text-white mb-1">Salle d'attente</h2>
-        <p class="text-xs text-slate-400 mb-4">En attente des autres joueurs...</p>
         
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Code de la salle</p>
-            <div class="flex items-center justify-center gap-3">
-                <span id="room-code-display" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
-                <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition" title="Copier"><i class="fa-solid fa-copy"></i></button>
+        <!-- ✅ MODE MATCH RAPIDE (Animation de recherche) -->
+        <div id="quick-match-search" class="hidden">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <h2 class="text-xl font-black text-white mb-2">Recherche d'un adversaire...</h2>
+            <p class="text-xs text-slate-400 mb-6">En attente d'un autre joueur pour un match rapide.</p>
+        </div>
+
+        <!-- ✅ MODE SALLE PRIVÉE (Avec code) -->
+        <div id="private-match-info">
+            <h2 class="text-xl font-black text-white mb-1">Salle d'attente</h2>
+            <p class="text-xs text-slate-400 mb-4">En attente des autres joueurs...</p>
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Code de la salle</p>
+                <div class="flex items-center justify-center gap-3">
+                    <span id="room-code-display" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
+                    <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition" title="Copier"><i class="fa-solid fa-copy"></i></button>
+                </div>
             </div>
         </div>
 
@@ -536,6 +546,7 @@ let _watchdogLastIdx = -1; let _watchdogTick = 0;
 let currentPhoneLength = 10;
 let currentMultiGameId = null;
 let realtimeSubscription = null;
+let isQuickMatch = false; // ✅ Variable pour différencier les modes
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
@@ -1063,7 +1074,7 @@ function startGameSession() {
     prepareNextRound();
 }
 
-// ✅ NOUVEAU : Logique du Lobby Multijoueur
+// ✅ LOGIQUE DU LOBBY MULTIJOUEUR
 async function openMultiModal() {
     if (!state.user) {
         alert("Veuillez vous connecter pour jouer en multijoueur.");
@@ -1087,13 +1098,13 @@ $('btn-quick-match').onclick = async () => {
         if (error) throw error;
         
         $('modal-multi').classList.add('hidden');
-        // data contient { game_id, join_code, is_host }
-        openWaitingRoom(data.join_code, data.is_host);
+        isQuickMatch = true; // ✅ On active le mode rapide
+        openWaitingRoom(data.join_code, data.is_host, true);
     } catch (err) {
         $('multi-error').textContent = err.message;
         $('multi-error').classList.remove('hidden');
     } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Partie Rapide (1v1)';
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Match Rapide (1v1)';
     }
 };
 
@@ -1107,7 +1118,8 @@ $('btn-create-room').onclick = async () => {
         if (error) throw error;
         
         $('modal-multi').classList.add('hidden');
-        openWaitingRoom(code, true);
+        isQuickMatch = false; // ✅ Mode salle privée
+        openWaitingRoom(code, true, false);
     } catch (err) {
         $('multi-error').textContent = err.message;
         $('multi-error').classList.remove('hidden');
@@ -1129,7 +1141,8 @@ $('btn-join-room').onclick = async () => {
         if (error) throw error;
         
         $('modal-multi').classList.add('hidden');
-        openWaitingRoom(code, false);
+        isQuickMatch = false;
+        openWaitingRoom(code, false, false);
     } catch (err) {
         $('multi-error').textContent = err.message;
         $('multi-error').classList.remove('hidden');
@@ -1138,24 +1151,32 @@ $('btn-join-room').onclick = async () => {
     }
 };
 
-async function openWaitingRoom(code, isHost) {
+async function openWaitingRoom(code, isHost, quickMatch = false) {
     $('waiting-room').classList.remove('hidden');
-    $('room-code-display').textContent = code;
+    
+    // ✅ Gestion de l'affichage selon le mode
+    if (quickMatch) {
+        $('quick-match-search').classList.remove('hidden');
+        $('private-match-info').classList.add('hidden');
+    } else {
+        $('quick-match-search').classList.add('hidden');
+        $('private-match-info').classList.remove('hidden');
+        $('room-code-display').textContent = code;
+    }
+
     $('btn-start-multi-game').classList.toggle('hidden', !isHost);
 
+    if (realtimeSubscription) supabaseClient.removeChannel(realtimeSubscription);
     realtimeSubscription = supabaseClient.channel('room-' + code)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players' }, payload => {
-            updateWaitingList();
+            updateWaitingList(code, quickMatch);
         })
         .subscribe();
 
-    updateWaitingList();
+    updateWaitingList(code, quickMatch);
 }
 
-async function updateWaitingList() {
-    const code = $('room-code-display').textContent;
-    if (code === '8M-XXXX') return;
-
+async function updateWaitingList(code, quickMatch) {
     const { data: game } = await supabaseClient.from('games').select('id').eq('join_code', code).single();
     if (!game) return;
     currentMultiGameId = game.id;
@@ -1168,6 +1189,12 @@ async function updateWaitingList() {
         players.forEach((p) => {
             list.innerHTML += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg"><span class="text-sm text-slate-200 font-bold"><i class="fa-solid fa-user text-xs mr-2 text-amber-400"></i>${escapeHtml(p.display_name)}</span> <span class="text-[10px] text-emerald-400">Prêt</span></div>`;
         });
+
+        // ✅ Si c'est un match rapide et qu'on est 2 (ou plus), on arrête la recherche
+        if (quickMatch && players.length >= 2) {
+            $('quick-match-search').classList.add('hidden');
+            $('btn-start-multi-game').classList.remove('hidden'); // L'hôte peut lancer (ou on lancera auto plus tard)
+        }
     } else {
         list.innerHTML = '<p class="text-xs text-slate-500 italic">En attente...</p>';
     }
@@ -1187,7 +1214,7 @@ $('btn-leave-room').onclick = () => {
 };
 
 $('btn-start-multi-game').onclick = () => {
-    alert("🚀 Le moteur multijoueur en temps réel arrive à la prochaine étape ! Pour l'instant, le lobby est fonctionnel.");
+    alert("🚀 Le moteur multijoueur en temps réel arrive à la prochaine étape ! Pour l'instant, le matchmaking est fonctionnel.");
 };
 
 // INITIALISATION
