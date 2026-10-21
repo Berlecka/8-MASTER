@@ -15,15 +15,11 @@ body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
 </head>
 <body class="min-h-screen p-4">
 
-<!-- ÉCRAN DE CONNEXION ADMIN -->
 <div id="login-screen" class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950 z-50">
     <div class="glass-panel rounded-3xl p-8 max-w-sm w-full text-center">
-        <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-            <i class="fa-solid fa-shield-halved"></i>
-        </div>
+        <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div>
         <h1 class="text-2xl font-black text-white mb-2">Accès Restreint</h1>
-        <p class="text-xs text-slate-400 mb-6">Veuillez vous identifier avec votre compte Administrateur.</p>
-        
+        <p class="text-xs text-slate-400 mb-6">Identifiez-vous avec votre compte Administrateur.</p>
         <form id="login-form" class="space-y-4 text-left">
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 mb-1">Pseudo Admin</label>
@@ -39,38 +35,19 @@ body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
     </div>
 </div>
 
-<!-- TABLEAU DE BORD ADMIN -->
 <div id="dashboard-screen" class="max-w-6xl mx-auto hidden">
     <header class="flex justify-between items-center glass-panel rounded-2xl p-4 mb-6">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center text-lg shadow-lg"><i class="fa-solid fa-shield-halved"></i></div>
-            <div>
-                <h1 class="text-xl font-black text-white">Panneau d'Administration</h1>
-                <p id="admin-email-display" class="text-[10px] text-amber-400 font-bold"></p>
-            </div>
+            <div><h1 class="text-xl font-black text-white">Panneau d'Administration</h1><p id="admin-email-display" class="text-[10px] text-amber-400 font-bold"></p></div>
         </div>
-        <button id="btn-logout-admin" class="bg-slate-800 hover:bg-slate-700 text-red-400 px-4 py-2 rounded-xl text-sm font-bold transition">
-            <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
-        </button>
+        <button id="btn-logout-admin" class="bg-slate-800 hover:bg-slate-700 text-red-400 px-4 py-2 rounded-xl text-sm font-bold transition"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
     </header>
-
-    <!-- Statistiques -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="glass-panel rounded-2xl p-5 border-l-4 border-amber-500">
-            <p class="text-xs text-slate-400 font-bold uppercase">Joueurs Inscrits</p>
-            <p id="stat-players" class="text-3xl font-black text-white mt-1">0</p>
-        </div>
-        <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500">
-            <p class="text-xs text-slate-400 font-bold uppercase">Parties Jouées</p>
-            <p id="stat-games" class="text-3xl font-black text-white mt-1">0</p>
-        </div>
-        <div class="glass-panel rounded-2xl p-5 border-l-4 border-red-500">
-            <p class="text-xs text-slate-400 font-bold uppercase">Joueurs Bannis</p>
-            <p id="stat-banned" class="text-3xl font-black text-white mt-1">0</p>
-        </div>
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-amber-500"><p class="text-xs text-slate-400 font-bold uppercase">Joueurs Inscrits</p><p id="stat-players" class="text-3xl font-black text-white mt-1">0</p></div>
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500"><p class="text-xs text-slate-400 font-bold uppercase">Parties Jouées</p><p id="stat-games" class="text-3xl font-black text-white mt-1">0</p></div>
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-red-500"><p class="text-xs text-slate-400 font-bold uppercase">Joueurs Bannis</p><p id="stat-banned" class="text-3xl font-black text-white mt-1">0</p></div>
     </div>
-
-    <!-- Tableau des joueurs -->
     <div class="glass-panel rounded-2xl overflow-hidden">
         <div class="p-5 border-b border-slate-800 flex justify-between items-center">
             <h2 class="font-black text-lg text-white">Liste des Joueurs</h2>
@@ -79,149 +56,88 @@ body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-900/50 text-slate-400 text-xs uppercase">
-                    <tr>
-                        <th class="p-4">Pseudo</th>
-                        <th class="p-4">WhatsApp</th>
-                        <th class="p-4 text-center">ELO</th>
-                        <th class="p-4 text-center">Victoires / Parties</th>
-                        <th class="p-4 text-center">Statut</th>
-                        <th class="p-4 text-right">Actions</th>
-                    </tr>
+                    <tr><th class="p-4">Pseudo</th><th class="p-4">WhatsApp</th><th class="p-4 text-center">ELO</th><th class="p-4 text-center">Victoires / Parties</th><th class="p-4 text-center">Statut</th><th class="p-4 text-right">Actions</th></tr>
                 </thead>
-                <tbody id="players-table" class="divide-y divide-slate-800">
-                    <!-- Les lignes seront injectées ici -->
-                </tbody>
+                <tbody id="players-table" class="divide-y divide-slate-800"></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-// ✅ CORRECTION C1 : URL SUPABASE EXACTE
 const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ✅ CORRECTION C5 : Protection XSS
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-}
+function escapeHtml(str) { if (!str) return ''; return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+function generateFakeEmail(username) { return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`; }
 
-// ✅ CORRECTION M2 : Regex email
-function generateFakeEmail(username) {
-    return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`;
-}
-
-// --- GESTION DE LA CONNEXION ---
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('admin-username').value.trim();
     const password = document.getElementById('admin-password').value;
     const errorEl = document.getElementById('login-error');
     const btn = document.getElementById('btn-login');
-    
-    errorEl.classList.add('hidden');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Vérification...';
-
+    errorEl.classList.add('hidden'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     try {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
         if (authError) throw new Error("Pseudo ou mot de passe incorrect.");
-
         const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('is_admin, is_banned').eq('id', authData.user.id).single();
-
-        if (profileError || !profile || profile.is_admin !== true) {
-            await supabaseClient.auth.signOut();
-            throw new Error("Accès refusé : ce compte n'est pas administrateur.");
-        }
-        
-        // ✅ CORRECTION p4 : Vérifier si l'admin est banni
-        if (profile.is_banned) {
-            await supabaseClient.auth.signOut();
-            throw new Error("Accès refusé : ce compte administrateur a été banni.");
-        }
-
+        if (profileError || !profile || profile.is_admin !== true) { await supabaseClient.auth.signOut(); throw new Error("Ce compte n'est pas administrateur."); }
+        if (profile.is_banned) { await supabaseClient.auth.signOut(); throw new Error("Compte banni."); }
         document.getElementById('admin-email-display').textContent = `Connecté : ${username}`;
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('dashboard-screen').classList.remove('hidden');
         loadDashboardData();
-
-    } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.classList.remove('hidden');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = 'Se connecter';
-    }
+    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
+    finally { btn.disabled = false; btn.innerHTML = 'Se connecter'; }
 });
 
-// --- DÉCONNEXION ---
-document.getElementById('btn-logout-admin').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.reload();
-});
+document.getElementById('btn-logout-admin').addEventListener('click', async () => { await supabaseClient.auth.signOut(); window.location.reload(); });
 
-// --- CHARGEMENT DES DONNÉES ---
 async function loadDashboardData() {
     const tbody = document.getElementById('players-table');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</td></tr>';
-
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
     try {
         const { data: profiles, error: profError } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
         if (profError) throw profError;
-
         const { count: gamesCount } = await supabaseClient.from('games').select('*', { count: 'exact', head: true });
-
         document.getElementById('stat-players').textContent = profiles.length;
         document.getElementById('stat-games').textContent = gamesCount || 0;
         document.getElementById('stat-banned').textContent = profiles.filter(p => p.is_banned).length;
-
         tbody.innerHTML = '';
         profiles.forEach(p => {
             const isBanned = p.is_banned;
-            const statusBadge = isBanned 
-                ? '<span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-bold">Banni</span>' 
+            const statusBadge = isBanned
+                ? '<span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-bold">Banni</span>'
                 : '<span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded text-xs font-bold">Actif</span>';
-            
             const actionBtn = isBanned
                 ? `<button onclick="toggleBan('${p.id}', true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-bold transition">Débannir</button>`
                 : `<button onclick="toggleBan('${p.id}', false)" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition">Bannir</button>`;
-
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-800/30 transition';
-            // ✅ CORRECTION C5 : Application de escapeHtml
             tr.innerHTML = `
-                <td class="p-4 font-bold text-white flex items-center gap-2">
-                    ${p.is_admin ? '<i class="fa-solid fa-crown text-amber-400" title="Admin"></i>' : ''}
-                    ${escapeHtml(p.username_display)}
-                </td>
+                <td class="p-4 font-bold text-white flex items-center gap-2">${p.is_admin ? '<i class="fa-solid fa-crown text-amber-400"></i>' : ''}${escapeHtml(p.username_display)}</td>
                 <td class="p-4 text-slate-300">${escapeHtml(p.whatsapp || 'Non renseigné')}</td>
                 <td class="p-4 text-center font-bold text-amber-400">${p.elo_global}</td>
                 <td class="p-4 text-center text-slate-300">${p.games_won} / ${p.games_played}</td>
                 <td class="p-4 text-center">${statusBadge}</td>
-                <td class="p-4 text-right">${p.is_admin ? '<span class="text-xs text-slate-500 italic">Protégé</span>' : actionBtn}</td>
-            `;
+                <td class="p-4 text-right">${p.is_admin ? '<span class="text-xs text-slate-500 italic">Protégé</span>' : actionBtn}</td>`;
             tbody.appendChild(tr);
         });
-
     } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<td colspan="6" class="text-center p-4 text-red-400">Erreur de chargement : ${err.message}</td>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-red-400">Erreur : ${escapeHtml(err.message)}</td></tr>`;
     }
 }
 
-// --- BANNIR / DÉBANNIR ---
 window.toggleBan = async (userId, isCurrentlyBanned) => {
-    if (!confirm(`Voulez-vous vraiment ${isCurrentlyBanned ? 'débannir' : 'bannir'} ce joueur ?`)) return;
-
+    if (!confirm(`${isCurrentlyBanned ? 'Débannir' : 'Bannir'} ce joueur ?`)) return;
     try {
         const { error } = await supabaseClient.from('profiles').update({ is_banned: !isCurrentlyBanned }).eq('id', userId);
         if (error) throw error;
         loadDashboardData();
-    } catch (err) {
-        alert("Erreur lors de l'action : " + err.message);
-    }
+    } catch (err) { alert("Erreur : " + err.message); }
 };
 
 document.getElementById('btn-refresh').addEventListener('click', loadDashboardData);

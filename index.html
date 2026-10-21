@@ -80,8 +80,6 @@ body.light-theme .black-suit { color: #0f172a; }
     #opponents-container { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     #discard-pile-container > .playing-card { transform: scale(1.05); }
 }
-.journal-entry { padding: 4px 8px; border-left: 2px solid rgba(245,158,11,0.4); font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
-.journal-entry.highlight { color: var(--accent); font-weight: 700; }
 .score-badge { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: var(--accent); padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
 #btn-bot-speed { transition: transform 0.15s, box-shadow 0.2s; }
 #btn-bot-speed:active { transform: scale(0.93); }
@@ -153,7 +151,6 @@ body.light-theme .black-suit { color: #0f172a; }
                 </select>
             </div>
         </div>
-        
         <div class="grid grid-cols-2 gap-3 mt-5">
             <button id="btn-start-game-final" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-black py-3 rounded-2xl text-sm shadow-lg transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-robot"></i> Solo
@@ -171,7 +168,6 @@ body.light-theme .black-suit { color: #0f172a; }
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         <h2 class="text-2xl font-black text-amber-400 mb-1">Multijoueur</h2>
         <p class="text-xs text-slate-400 mb-6">Jouez avec vos amis</p>
-
         <div class="space-y-4">
             <button id="btn-show-directory" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-address-book"></i> Annuaire des joueurs
@@ -183,7 +179,6 @@ body.light-theme .black-suit { color: #0f172a; }
                 <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
                 <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code</button>
             </div>
-            <div id="multi-error" class="hidden text-red-400 text-xs font-bold text-center bg-red-950/50 py-2 rounded-lg border border-red-500/30"></div>
         </div>
     </div>
 </div>
@@ -197,54 +192,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- POPUP INVITATION REÇUE -->
-<div id="modal-invite-received" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-slate-900 border border-amber-500/50 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry relative">
-        <div class="text-4xl mb-4">✉️</div>
-        <h2 class="text-xl font-black text-white mb-2">Invitation !</h2>
-        <p id="invite-text" class="text-sm text-slate-300 mb-6">Un joueur vous invite à rejoindre sa partie.</p>
-        <div class="flex gap-3">
-            <button id="btn-decline-invite" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition">Refuser</button>
-            <button id="btn-accept-invite" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition">Rejoindre</button>
-        </div>
-    </div>
-</div>
-
-<!-- SALLE D'ATTENTE -->
-<div id="waiting-room" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center hidden z-50 p-4">
-    <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative">
-        <div id="quick-match-search" class="hidden">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
-            <h2 class="text-xl font-black text-white mb-2">Recherche d'un adversaire...</h2>
-        </div>
-
-        <div id="private-match-info">
-            <h2 class="text-xl font-black text-white mb-1">Salle d'attente</h2>
-            <p class="text-xs text-slate-400 mb-4">En attente des autres joueurs...</p>
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Code de la salle</p>
-                <div class="flex items-center justify-center gap-3">
-                    <span id="room-code-display" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
-                    <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition"><i class="fa-solid fa-copy"></i></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-6">
-            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 text-left">Joueurs connectés</h3>
-            <div id="waiting-players-list" class="space-y-2"></div>
-        </div>
-
-        <button id="btn-start-multi-game" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg transition hidden">
-            Lancer la partie <i class="fa-solid fa-play text-xs ml-1"></i>
-        </button>
-        <button id="btn-leave-room" class="w-full mt-3 bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl transition text-xs">
-            Quitter la salle
-        </button>
-    </div>
-</div>
-
-<!-- PLATEAU DE JEU -->
+<!-- PLATEAU -->
 <div id="game-board" class="w-full max-w-4xl felt-table p-3 sm:p-5 flex flex-col justify-between min-h-[580px] relative hidden my-auto">
     <div class="flex flex-wrap justify-between items-center bg-slate-950/70 backdrop-blur rounded-2xl p-2.5 border border-slate-800/80 mb-3 gap-2 text-xs">
         <div class="flex items-center gap-1.5"><span class="text-slate-400">Tour :</span><span id="hud-current-turn" class="font-black text-amber-400">Vous</span></div>
@@ -253,9 +201,7 @@ body.light-theme .black-suit { color: #0f172a; }
         <div class="flex items-center gap-1.5"><span class="text-slate-400">Manche :</span><span id="hud-round" class="font-bold text-white">1</span></div>
         <button id="btn-bot-speed" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1.5"><span id="speed-icon">⏱️</span><span id="speed-label">2s</span></button>
     </div>
-
     <div id="opponents-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-3"></div>
-
     <div class="flex justify-center items-center gap-8 sm:gap-12 my-2 relative">
         <div class="text-center relative">
             <span class="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">Talon</span>
@@ -273,9 +219,7 @@ body.light-theme .black-suit { color: #0f172a; }
             </div>
         </div>
     </div>
-
     <div id="action-banner" class="text-center py-1.5 px-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-bold my-1 max-w-md mx-auto min-h-[28px] flex items-center justify-center">Prêt !</div>
-
     <div class="bg-slate-950/70 backdrop-blur rounded-2xl p-2.5 sm:p-3 border border-slate-800/80 mt-1">
         <div class="flex justify-between items-center mb-1.5">
             <div class="flex items-center gap-2 flex-wrap">
@@ -296,8 +240,7 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="effect-zone"></div>
 </div>
 
-<!-- MODALES DU JEU (Règles, Profil, Auth, Picker, Game Over...) -->
-<!-- NOTE : J'ai gardé tout le code des modales qui suit pour que rien ne casse -->
+<!-- PROFIL -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -306,7 +249,6 @@ body.light-theme .black-suit { color: #0f172a; }
         </div>
         <h2 id="profile-username" class="text-2xl font-black text-white mb-1">Pseudo</h2>
         <p id="profile-elo" class="text-amber-400 font-bold text-sm mb-4">ELO : 1000</p>
-
         <div class="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3 mb-6 text-left">
             <div class="flex justify-between border-b border-slate-800 pb-2">
                 <span class="text-xs text-slate-400">Parties jouées</span>
@@ -324,6 +266,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- AUTH -->
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -408,18 +351,9 @@ body.light-theme .black-suit { color: #0f172a; }
                 <h2 class="text-2xl font-black text-amber-400 mb-1">Récapitulatif</h2>
                 <p class="text-xs text-slate-400 mb-6">Vérifiez vos informations</p>
                 <div class="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3 mb-6 text-left">
-                    <div class="flex justify-between border-b border-slate-800 pb-2">
-                        <span class="text-xs text-slate-400">Pseudo</span>
-                        <span id="recap-username" class="text-sm font-bold text-white"></span>
-                    </div>
-                    <div class="flex justify-between border-b border-slate-800 pb-2">
-                        <span class="text-xs text-slate-400">WhatsApp</span>
-                        <span id="recap-whatsapp" class="text-sm font-bold text-white"></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-xs text-slate-400">Mot de passe</span>
-                        <span class="text-sm font-bold text-white">••••••••</span>
-                    </div>
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span class="text-xs text-slate-400">Pseudo</span><span id="recap-username" class="text-sm font-bold text-white"></span></div>
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span class="text-xs text-slate-400">WhatsApp</span><span id="recap-whatsapp" class="text-sm font-bold text-white"></span></div>
+                    <div class="flex justify-between"><span class="text-xs text-slate-400">Mot de passe</span><span class="text-sm font-bold text-white">••••••••</span></div>
                 </div>
                 <div class="flex gap-3">
                     <button id="btn-auth-back" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-xs">Modifier</button>
@@ -430,6 +364,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- RÈGLES -->
 <div id="modal-rules" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-md w-full text-left shadow-2xl max-h-[85vh] overflow-y-auto modal-entry">
         <div class="flex justify-between items-center mb-3"><h3 class="text-lg font-black text-amber-400"><i class="fa-solid fa-book-open"></i> Règles</h3><button id="btn-close-rules" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
@@ -443,6 +378,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- PICKER COULEUR -->
 <div id="modal-suit-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
         <h3 class="text-2xl font-black text-amber-400 mb-2">Pouvoir du 8 !</h3>
@@ -455,14 +391,12 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- NOMBRE DE CARTES -->
 <div id="modal-card-count" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
         <h3 class="text-2xl font-black text-amber-400 mb-2">Distribution</h3>
         <p class="text-xs text-slate-400 mb-5">Vous distribuez. Combien de cartes par joueur ?</p>
-        <div class="flex justify-between items-center mb-3">
-            <span class="text-xs font-bold text-slate-300">Cartes :</span>
-            <span id="card-count-modal-display" class="text-2xl font-black text-amber-400">6</span>
-        </div>
+        <div class="flex justify-between items-center mb-3"><span class="text-xs font-bold text-slate-300">Cartes :</span><span id="card-count-modal-display" class="text-2xl font-black text-amber-400">6</span></div>
         <input type="range" id="card-count-modal-range" min="3" max="8" value="6" class="w-full cursor-pointer mb-5">
         <button id="btn-confirm-card-count" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-3 rounded-xl text-sm shadow-lg transition">Distribuer</button>
     </div>
@@ -486,19 +420,14 @@ body.light-theme .black-suit { color: #0f172a; }
 <script src="engine-8master.js"></script>
 <script>
 if (typeof Engine8Master === 'undefined') {
-    document.body.innerHTML = '<div style="color:#f87171;padding:40px;font-size:18px;text-align:center;font-family:sans-serif">⚠️ Erreur de chargement<br><br>Le fichier <b>engine-8master.js</b> n\'a pas été trouvé.</div>';
+    document.body.innerHTML = '<div style="color:#f87171;padding:40px;font-size:18px;text-align:center;font-family:sans-serif">⚠️ engine-8master.js non chargé.</div>';
     throw new Error('engine-8master.js non chargé');
 }
-
-const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co'; // ⚠️ Vérifie que c'est la bonne URL
-const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl'; 
-
+const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl';
 let supabaseClient = null;
-if (SUPABASE_ANON_KEY.includes('COLLE_TA_CLE')) {
-    console.error('⚠️ ERREUR FATALE : La clé Supabase est manquante.');
-} else {
+if (!SUPABASE_ANON_KEY.includes('COLLE_TA_CLE')) {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase client initialisé.');
 }
 </script>
 
@@ -509,40 +438,21 @@ const SPEED_LEVELS = [ { key: 'slow', icon: '🐢', label: '3s', ms: 3000 }, { k
 const state = {
     deckColor: 'red', numDecks: 1, cardsPerPlayer: 6, aiCount: 2, aiDifficulty: 'medium', botSpeed: 'normal',
     soundEnabled: true, theme: 'dark', animationsEnabled: true, flightDurationMs: 450, bubbleDurationMs: 3500, cascadeDraw: true,
-    isHumanTurn: false, isAiThinking: false, isAnimating: false, roundProcessing: false, journal: [], pendingDiscardAnimation: false, needsSuitChoice: false,
+    isHumanTurn: false, isAiThinking: false, isAnimating: false, roundProcessing: false, pendingDiscardAnimation: false, needsSuitChoice: false,
     user: null, tempUserData: {}
 };
-
 let game = null;
 let _watchdogLastIdx = -1; let _watchdogTick = 0;
 let currentPhoneLength = 10;
+
+/* ───── MULTIJOUEUR v2 ───── */
 let currentMultiGameId = null;
-let realtimeSubscription = null;
-let pollingInterval = null;
-let invitePollingInterval = null;
-
-// ✅ SAUVEGARDE DE L'ÉCRAN ACTUEL
-function saveUIState() {
-    const view = $('waiting-room').classList.contains('hidden') === false ? 'lobby' : 
-                 ($('game-board').classList.contains('hidden') === false ? 'solo' : 'menu');
-    localStorage.setItem('8master-view', view);
-    if (view === 'lobby') localStorage.setItem('8master-room', $('room-code-display').textContent);
-}
-
-function restoreUIState() {
-    const view = localStorage.getItem('8master-view');
-    if (view === 'lobby') {
-        const code = localStorage.getItem('8master-room');
-        if (code && code !== '8M-XXXX') {
-            $('setup-screen').classList.add('hidden');
-            openWaitingRoom(code, false, code.startsWith('QM-'));
-            return true;
-        }
-    } else if (view === 'solo') {
-        if (loadGameState()) return true;
-    }
-    return false;
-}
+let multiStateChannel = null;
+let multiEventsChannel = null;
+let multiPollInterval = null;
+let multiSearchPollInterval = null;
+let multiLastProcessedEventId = 0;
+let multiIsHost = false;
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
@@ -551,12 +461,10 @@ function updateSpeedButton() {
     if ($('speed-icon')) $('speed-icon').textContent = level.icon;
     if ($('speed-label')) $('speed-label').textContent = level.label;
 }
-
 function saveGameState() {
-    if (game && !game.gameOver) { localStorage.setItem('8master-active-game', JSON.stringify(game)); } 
+    if (game && !game.gameOver && !currentMultiGameId) { localStorage.setItem('8master-active-game', JSON.stringify(game)); }
     else { localStorage.removeItem('8master-active-game'); }
 }
-
 function loadGameState() {
     const saved = localStorage.getItem('8master-active-game');
     if (!saved) return false;
@@ -567,16 +475,12 @@ function loadGameState() {
             $('setup-screen').classList.add('hidden');
             $('game-board').classList.remove('hidden');
             updateUI();
-            if (game.roundEnded) {
-                if (game.lastRoundSummary) showRoundEndModal(game.lastRoundSummary, game.lastWinnerId);
-            } else if (game.gameOver) {
-                showGameOverModal();
-            } else {
-                setTimeout(() => scheduleNextTurn(), 500);
-            }
+            if (game.roundEnded) { if (game.lastRoundSummary) showRoundEndModal(game.lastRoundSummary, game.lastWinnerId); }
+            else if (game.gameOver) { showGameOverModal(); }
+            else { setTimeout(() => scheduleNextTurn(), 500); }
             return true;
         }
-    } catch (e) { console.warn("Erreur de restauration de l'état", e); localStorage.removeItem('8master-active-game'); }
+    } catch (e) { localStorage.removeItem('8master-active-game'); }
     return false;
 }
 
@@ -609,14 +513,12 @@ const Storage = {
         try { const raw = localStorage.getItem('8master-config'); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
     }
 };
-
 function applyTheme(theme) {
     state.theme = theme;
     if (theme === 'light') { document.body.classList.add('light-theme'); if($('theme-icon')) $('theme-icon').className = 'fa-solid fa-sun'; }
     else { document.body.classList.remove('light-theme'); if($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; }
 }
-
-function escapeHtml(str) { return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+function escapeHtml(str) { return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
 function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
 function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
 function renderCardHTML(card, isPlayable = false) {
@@ -646,10 +548,10 @@ function showEffectBanner(text) {
     zone.prepend(banner);
     setTimeout(() => { banner.style.cssText='opacity:0;transform:translateX(-15px) scale(0.85);transition:0.4s;'; setTimeout(() => banner.remove(), 450); }, state.bubbleDurationMs);
 }
-function logJournal(text, highlight = false) { state.journal.unshift({ text, highlight }); if (state.journal.length > 40) state.journal.pop(); }
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
+/* AUTH */
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -664,49 +566,38 @@ function switchAuthTab(tab) {
         loginStep.classList.add('hidden'); registerStep.classList.remove('hidden');
     }
 }
-
 function openAuthModal() {
     $('modal-auth').classList.remove('hidden');
     switchAuthTab('login');
     $('login-form').reset(); $('login-error').classList.add('hidden');
     $('auth-form').reset(); $('auth-error').classList.add('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden');
 }
-
-function generateFakeEmail(username) {
-    return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`;
-}
-
+function generateFakeEmail(username) { return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`; }
 async function handleLoginSubmit(e) {
     e.preventDefault();
-    if (!supabaseClient) return alert("Erreur fatale : Clé Supabase manquante.");
+    if (!supabaseClient) return alert("Supabase manquant.");
     const username = $('login-username').value.trim(), password = $('login-password').value;
     const errorEl = $('login-error'), btn = $('btn-login-submit');
     errorEl.classList.add('hidden'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
-    
     try {
         const { error } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
         if (error) throw new Error("Pseudo ou mot de passe incorrect.");
         $('modal-auth').classList.add('hidden'); checkAuth();
-    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); } 
+    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
     finally { btn.disabled = false; btn.innerHTML = 'Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>'; }
 }
-
 function validateAuthForm() {
     const u = $('auth-username').value.trim(), w = $('auth-whatsapp').value.trim(), p = $('auth-password').value, c = $('auth-password-confirm').value;
     const btn = $('btn-auth-next'), confirmInput = $('auth-password-confirm'), phoneInput = $('auth-whatsapp');
-
-    if (c.length > 0) { if (p === c) { confirmInput.classList.remove('border-red-500'); confirmInput.classList.add('border-emerald-500'); } else { confirmInput.classList.remove('border-emerald-500'); confirmInput.classList.add('border-red-500'); } } 
+    if (c.length > 0) { if (p === c) { confirmInput.classList.remove('border-red-500'); confirmInput.classList.add('border-emerald-500'); } else { confirmInput.classList.remove('border-emerald-500'); confirmInput.classList.add('border-red-500'); } }
     else { confirmInput.classList.remove('border-emerald-500', 'border-red-500'); }
-
     if (w.length > currentPhoneLength) phoneInput.value = w.slice(0, currentPhoneLength);
     if (w.length === currentPhoneLength) { phoneInput.classList.remove('border-slate-800'); phoneInput.classList.add('border-emerald-500', 'text-emerald-400'); }
     else { phoneInput.classList.remove('border-emerald-500', 'text-emerald-400'); phoneInput.classList.add('border-slate-800'); }
-
     const isValid = u.length >= 3 && w.length === currentPhoneLength && p.length >= 6 && p === c;
     if (isValid) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
     else { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
 }
-
 function handleAuthStep1() {
     if ($('btn-auth-next').disabled) return;
     const username = $('auth-username').value.trim(), countryCode = $('auth-country').value.split('|')[0], localWhatsapp = $('auth-whatsapp').value.trim();
@@ -714,85 +605,69 @@ function handleAuthStep1() {
     $('recap-username').textContent = username; $('recap-whatsapp').textContent = countryCode + localWhatsapp;
     $('auth-step-1').classList.add('hidden'); $('auth-step-2').classList.remove('hidden');
 }
-
 async function handleAuthSubmit() {
-    if (!supabaseClient) return alert("Erreur fatale : Clé Supabase manquante.");
+    if (!supabaseClient) return alert("Supabase manquant.");
     const btn = $('btn-auth-submit'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
     const { username, whatsapp, password } = state.tempUserData;
-
     try {
-        const { error } = await supabaseClient.auth.signUp({ email: generateFakeEmail(username), password: password, options: { data: { username: username, whatsapp: whatsapp } } });
+        const { error } = await supabaseClient.auth.signUp({ email: generateFakeEmail(username), password, options: { data: { username, whatsapp } } });
         if (error) throw error;
-        const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password: password });
+        const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
         if (loginError) throw loginError;
-        alert("Inscription réussie ! Vous êtes connecté."); $('modal-auth').classList.add('hidden'); checkAuth();
+        alert("Inscription réussie !"); $('modal-auth').classList.add('hidden'); checkAuth();
     } catch (err) {
-        console.error(err);
         $('auth-error').textContent = err.message === 'User already registered' ? "Ce pseudo est déjà pris." : err.message;
         $('auth-error').classList.remove('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden');
     } finally { btn.disabled = false; btn.innerHTML = 'Confirmer <i class="fa-solid fa-check"></i>'; }
 }
-
 async function checkAuth() {
     if (!supabaseClient) return;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             const { data: profile } = await supabaseClient.from('profiles').select('is_banned').eq('id', session.user.id).single();
-            if (profile && profile.is_banned) {
-                await supabaseClient.auth.signOut(); alert("⛔ Votre compte a été banni par l'administrateur."); window.location.reload(); return;
-            }
+            if (profile && profile.is_banned) { await supabaseClient.auth.signOut(); alert("Compte banni."); window.location.reload(); return; }
             state.user = session.user;
             $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
             $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
             if (session.user.user_metadata.username) $('player-name-input').value = session.user.user_metadata.username;
-            updateStatus('available');
         } else {
             state.user = null;
             $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
             $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
         }
-    } catch (err) { console.warn("checkAuth error:", err); state.user = null; }
+    } catch (err) { state.user = null; }
 }
-
 async function showProfile() {
     if (!state.user) return;
     $('modal-profile').classList.remove('hidden');
     $('profile-username').textContent = state.user.user_metadata.username || 'Joueur';
-    $('profile-elo').textContent = 'Chargement...'; $('profile-games').textContent = '-'; $('profile-wins').textContent = '-'; $('profile-winrate').textContent = '-';
-
+    $('profile-elo').textContent = 'Chargement...';
     try {
-        const { data, error } = await supabaseClient.from('profiles').select('username_display, elo_global, games_played, games_won').eq('id', state.user.id).single();
-        if (error) throw error;
+        const { data } = await supabaseClient.from('profiles').select('username_display, elo_global, games_played, games_won').eq('id', state.user.id).single();
         if (data) {
-            $('profile-username').textContent = data.username_display; $('profile-elo').textContent = `ELO : ${data.elo_global}`;
-            $('profile-games').textContent = data.games_played; $('profile-wins').textContent = data.games_won;
+            $('profile-username').textContent = data.username_display;
+            $('profile-elo').textContent = `ELO : ${data.elo_global}`;
+            $('profile-games').textContent = data.games_played;
+            $('profile-wins').textContent = data.games_won;
             $('profile-winrate').textContent = `${data.games_played > 0 ? Math.round((data.games_won / data.games_played) * 100) : 0}%`;
         }
-    } catch (err) { console.error(err); $('profile-elo').textContent = 'Erreur'; }
+    } catch (err) { $('profile-elo').textContent = 'Erreur'; }
 }
-
 async function saveGameResult(winner) {
-    if (!state.user) return;
-    const human = humanPlayer();
-    if (!human) return;
-
+    if (!state.user || currentMultiGameId) return;
+    const human = humanPlayer(); if (!human) return;
     const humanWon = winner && winner.isHuman;
-    const eloChange = humanWon ? 25 : -15; 
-    const humanScore = game.scores[human.id];
-
     try {
-        const { error } = await supabaseClient.rpc('process_game_result', {
-            p_human_id: state.user.id,
-            p_human_score: humanScore,
-            p_is_winner: humanWon,
-            p_player_count: game.players.length,
-            p_elo_change: eloChange
+        await supabaseClient.rpc('process_game_result', {
+            p_human_id: state.user.id, p_human_score: game.scores[human.id],
+            p_is_winner: humanWon, p_player_count: game.players.length,
+            p_elo_change: humanWon ? 25 : -15
         });
-        if (error) throw error;
-    } catch (err) { console.error("❌ Erreur sauvegarde RPC:", err); }
+    } catch (err) { console.error("saveGameResult:", err); }
 }
 
+/* UI */
 function updateUI() {
     if (!game) return;
     const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
@@ -800,19 +675,16 @@ function updateUI() {
         discardContainer.innerHTML = renderCardHTML(top);
         if (state.pendingDiscardAnimation) { discardContainer.firstElementChild.classList.add('card-drop-anim'); state.pendingDiscardAnimation = false; }
     } else { discardContainer.innerHTML = ''; }
-
     $('suit-indicator').classList.toggle('hidden', !game.activeSuit);
     if(game.activeSuit) $('suit-indicator').innerHTML = `${game.activeSuit} imposé`;
     $('lock-indicator').classList.toggle('hidden', !game.pendingAceConstraint);
     $('deck-counter').textContent = game.deck.length;
-
     const curP = game.players[game.currentPlayerIdx];
     $('hud-current-turn').innerText = curP ? curP.name : '';
     $('hud-round').innerText = game.roundNumber || 1;
     $('hud-active-suit').innerText = game.activeSuit ? `${game.activeSuit} imposé` : 'Libre';
     $('hud-dir-icon').className = game.direction === -1 ? 'dir-arrow spin-ccw fa-solid fa-arrow-rotate-left' : 'dir-arrow spin-cw fa-solid fa-arrow-rotate-right';
     $('hud-dir-label').innerText = game.direction === -1 ? 'Anti-Horaire' : 'Horaire';
-
     const oppContainer = $('opponents-container'); oppContainer.innerHTML = '';
     game.players.filter(p => !p.isHuman).forEach(opp => {
         const isTurn = curP && curP.id === opp.id && !opp.eliminated;
@@ -821,11 +693,9 @@ function updateUI() {
         let miniCards = ''; const visible = Math.min(opp.hand.length, 8);
         for (let i = 0; i < visible; i++) miniCards += `<span class="mini-card red" style="transform: rotate(${(i - visible / 2) * 3}deg)"></span>`;
         if (opp.hand.length > 8) miniCards += `<span class="text-[9px] text-amber-400 ml-1">+${opp.hand.length - 8}</span>`;
-        
-        box.innerHTML = `<div class="w-7 h-7 rounded-full ${isTurn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-400'} font-black flex items-center justify-center text-[10px] mb-1">${opp.eliminated ? '💀' : '🤖'}</div><span class="text-[11px] font-bold text-slate-200 truncate w-full">${escapeHtml(opp.name)}</span><span class="text-[9px] font-bold text-amber-300 mt-0.5">${game.scores[opp.id]} pts</span><div class="mt-1 h-4 flex items-center justify-center">${miniCards}</div>`;
+        box.innerHTML = `<div class="w-7 h-7 rounded-full ${isTurn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-400'} font-black flex items-center justify-center text-[10px] mb-1">${opp.eliminated ? '💀' : '👤'}</div><span class="text-[11px] font-bold text-slate-200 truncate w-full">${escapeHtml(opp.name)}</span><span class="text-[9px] font-bold text-amber-300 mt-0.5">${game.scores[opp.id]} pts</span><div class="mt-1 h-4 flex items-center justify-center">${miniCards}</div>`;
         oppContainer.appendChild(box);
     });
-
     const human = humanPlayer();
     if (human) {
         $('human-player-name').innerText = human.name;
@@ -834,11 +704,9 @@ function updateUI() {
         let potPts = 0; human.hand.forEach(c => potPts += Engine8Master.cardPoints(c));
         $('human-potential-badge').innerText = `+${potPts}`;
     }
-
     const canDraw = state.isHumanTurn && !state.isAiThinking && !state.isAnimating && !game.roundEnded && !game.gameOver;
     $('btn-voluntary-draw').disabled = !canDraw;
     if (human) $('btn-voluntary-draw').classList.toggle('animate-pulse', canDraw && human.hand.every(c => !Engine8Master.isCardPlayable(game, c)));
-
     const hand = $('human-hand'); hand.innerHTML = '';
     if (human) {
         human.hand.forEach((card, idx) => {
@@ -852,41 +720,25 @@ function updateUI() {
     updateSpeedButton();
     saveGameState();
 }
-
 async function processEvents(events) {
     for (const ev of events) {
-        if (ev.type === 'DRAWN') {
-            AudioFX.play('draw');
-            if (state.animationsEnabled) {
-                const target = game.players.find(p => p.id === ev.playerId);
-                if (target) {
-                    const fromRect = $('deck-pile')?.getBoundingClientRect(), toRect = target.isHuman ? handAreaRect() : botMiniRect(target);
-                    if (fromRect && toRect) {
-                        for (let i = 0; i < (ev.count || 1); i++) {
-                            if (state.cascadeDraw && i > 0) await new Promise(r => setTimeout(r, 120));
-                            await animateFlight(fromRect, toRect, null, true);
-                        }
-                    }
-                }
-            }
-        } else if (ev.type === 'SUIT_IMPOSED') { AudioFX.play('special'); showEffectBanner(`✨ Famille ${ev.suit} imposée`); }
+        if (ev.type === 'DRAWN') { AudioFX.play('draw'); }
+        else if (ev.type === 'SUIT_IMPOSED') { AudioFX.play('special'); showEffectBanner(`✨ Famille ${ev.suit} imposée`); }
         else if (ev.type === 'DIRECTION_REVERSED') { AudioFX.play('special'); showEffectBanner('🔄 Sens inversé !'); }
         else if (ev.type === 'PLAYER_SKIPPED') { AudioFX.play('special'); showEffectBanner(`🃏 ${getPlayerName(ev.playerId)} est sauté`); }
         else if (ev.type === 'ATTACK_2') { AudioFX.play('special'); showEffectBanner(`⚔️ Attaque du 2 : ${ev.victims.map(v => `${getPlayerName(v.id)} +${v.count}`).join(', ')}`); }
         else if (ev.type === 'ACE_LOCK_APPLIED') { AudioFX.play('special'); showEffectBanner(`🛡️ ${getPlayerName(ev.victimId)} est verrouillé`); }
         else if (ev.type === 'ACE_LOCK_RELEASED') { AudioFX.play('special'); showEffectBanner('🛡️ Contrainte levée'); }
-        else if (ev.type === 'LAST_CARD_FORBIDDEN') { AudioFX.play('lose'); showEffectBanner(`⚠️ ${getPlayerName(ev.playerId)} ne peut pas finir avec un ${ev.card.value} — pioche 1`); }
+        else if (ev.type === 'LAST_CARD_FORBIDDEN') { AudioFX.play('lose'); showEffectBanner(`⚠️ ${getPlayerName(ev.playerId)} ne peut pas finir avec un ${ev.card.value}`); }
         else if (ev.type === 'PLAYER_ELIMINATED') { AudioFX.play('lose'); showEffectBanner(`☠️ ${getPlayerName(ev.playerId)} éliminé`); }
     }
 }
-
 function scheduleNextTurn() {
     if (!game || game.roundEnded || game.gameOver) return;
     const curP = game.players[game.currentPlayerIdx]; if (!curP) return;
-
     if (curP.isHuman) {
         state.isHumanTurn = true; state.isAiThinking = false;
-        $('action-banner').innerText = game.pendingAceConstraint ? "🛡️ Verrouillé par un As — posez un As ou piochez." : "C'est à vous !";
+        $('action-banner').innerText = game.pendingAceConstraint ? "🛡️ Verrouillé — posez un As ou piochez." : "C'est à vous !";
         updateUI();
     } else {
         state.isHumanTurn = false; state.isAiThinking = true;
@@ -896,120 +748,326 @@ function scheduleNextTurn() {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MULTIJOUEUR v2 — Appairage automatique, plateau direct
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function enterMultiplayer(mode, opts) {
+    if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; }
+    opts = opts || {};
+    const displayName = state.user.user_metadata?.username || 'Joueur';
+
+    if (mode === 'quick') {
+        showSearchOverlay('Recherche d\'un adversaire...');
+        const { data, error } = await supabaseClient.rpc('rpc_enter_queue', { p_display_name: displayName, p_mode: 'quick' });
+        if (error) { hideSearchOverlay(); alert('Erreur : ' + error.message); return; }
+        if (data.matched) { hideSearchOverlay(); await attachToGame(data.game_id, false); }
+        else { startSearchPoll(); }
+        return;
+    }
+    if (mode === 'invite') {
+        showSearchOverlay('Envoi de l\'invitation...');
+        const { data, error } = await supabaseClient.rpc('rpc_invite_direct', { p_invitee_id: opts.inviteeId, p_display_name: displayName });
+        hideSearchOverlay();
+        if (error) { alert('Erreur : ' + error.message); return; }
+        await attachToGame(data.game_id, true);
+        return;
+    }
+    if (mode === 'private') {
+        showSearchOverlay('Connexion à la salle...');
+        const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', { p_code: opts.code, p_display_name: displayName });
+        hideSearchOverlay();
+        if (error) { alert('Erreur : ' + error.message); return; }
+        await attachToGame(gameId, false);
+        return;
+    }
+}
+
+function showSearchOverlay(text) {
+    let ov = $('multi-search-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'multi-search-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2><p class="text-xs text-slate-400 mb-4">Ne quittez pas cette page</p><button id="btn-cancel-search" class="w-full bg-slate-800 hover:bg-slate-700 text-red-300 font-bold py-2.5 rounded-xl text-xs">Annuler</button></div>`;
+        document.body.appendChild(ov);
+        $('btn-cancel-search').onclick = async () => { try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e){}; stopSearchPoll(); hideSearchOverlay(); };
+    }
+    $('multi-search-text').textContent = text;
+    ov.classList.remove('hidden');
+}
+function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
+function startSearchPoll() {
+    stopSearchPoll();
+    multiSearchPollInterval = setInterval(async () => {
+        const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
+        if (error) return;
+        if (data && data.found) { stopSearchPoll(); hideSearchOverlay(); await attachToGame(data.game_id, data.is_host); }
+    }, 1000);
+}
+function stopSearchPoll() { if (multiSearchPollInterval) clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
+
+async function attachToGame(gameId, isHost) {
+    currentMultiGameId = gameId;
+    multiIsHost = isHost;
+    multiLastProcessedEventId = 0;
+    ['setup-screen','modal-multi','modal-directory','modal-invite-received'].forEach(id => $(id)?.classList.add('hidden'));
+    $('game-board').classList.remove('hidden');
+
+    const { data: gameRow, error } = await supabaseClient.from('games').select('state_json, host_id, status').eq('id', gameId).single();
+    if (error || !gameRow) { alert('Partie introuvable.'); return; }
+
+    if (isHost && (!gameRow.state_json || Object.keys(gameRow.state_json).length === 0)) {
+        await pushInitialState(gameId);
+    } else if (gameRow.state_json && Object.keys(gameRow.state_json).length > 0) {
+        applyMultiState(gameRow.state_json);
+    }
+
+    if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
+    multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
+            payload => { if (payload.new.state_json) applyMultiState(payload.new.state_json); })
+        .subscribe();
+
+    if (isHost) {
+        if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
+        multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'game_id=eq.' + gameId },
+                payload => handleRemoteAction(payload.new))
+            .subscribe();
+    }
+
+    if (multiPollInterval) clearInterval(multiPollInterval);
+    multiPollInterval = setInterval(async () => {
+        const { data } = await supabaseClient.from('games').select('state_json').eq('id', gameId).single();
+        if (data && data.state_json) applyMultiState(data.state_json);
+    }, 2000);
+}
+
+async function pushInitialState(gameId) {
+    const { data: players, error } = await supabaseClient.from('game_players').select('user_id, display_name, seat').eq('game_id', gameId).order('seat');
+    if (error || !players || players.length < 2) { alert('Joueurs insuffisants.'); return; }
+    const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
+    const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer: 6, cardsPerDeck: 8, numDecks: 1 });
+    Engine8Master.startRound(initial);
+    const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
+    await supabaseClient.rpc('rpc_push_state', { p_game_id: gameId, p_new_state: initial, p_current_turn_user_id: firstTurnEngineId });
+    applyMultiState(initial);
+}
+
+function applyMultiState(remoteState) {
+    if (!remoteState || !remoteState.players) return;
+    const wasMyTurn = state.isHumanTurn;
+    game = remoteState;
+    const myUserId = state.user?.id;
+    game.players.forEach(p => { p.isHuman = (p.id === myUserId); });
+    const currentEngineId = game.players[game.currentPlayerIdx]?.id;
+    const isMyTurnNow = (currentEngineId === myUserId) && !game.roundEnded && !game.gameOver;
+    state.isHumanTurn = isMyTurnNow;
+    state.isAiThinking = false;
+    state.isAnimating = false;
+    updateUI();
+    if (isMyTurnNow && !wasMyTurn) { $('action-banner').innerText = '🟢 À vous de jouer !'; AudioFX.play('click'); }
+    else if (!isMyTurnNow) { const cur = game.players[game.currentPlayerIdx]; $('action-banner').innerText = cur ? `⏳ Tour de ${cur.name}` : 'En attente...'; }
+}
+
+async function handleRemoteAction(eventRow) {
+    if (!eventRow || !eventRow.payload || !game) return;
+    if (eventRow.id <= multiLastProcessedEventId) return;
+    if (eventRow.actor_id === state.user?.id) return;
+    multiLastProcessedEventId = eventRow.id;
+    const action = eventRow.payload;
+    const playerId = eventRow.actor_id;
+    let result = null;
+    if (action.type === 'PLAY_CARD')        result = Engine8Master.playCard(game, playerId, action.cardIndex);
+    else if (action.type === 'DRAW_CARD')   result = Engine8Master.drawCard(game, playerId);
+    else if (action.type === 'CHOOSE_SUIT') result = Engine8Master.chooseSuit(game, playerId, action.suit);
+    if (!result || !result.valid) { console.warn('Action distante invalide:', action, result?.reason); return; }
+    const nextTurn = game.players[game.currentPlayerIdx];
+    await supabaseClient.rpc('rpc_push_state', {
+        p_game_id: currentMultiGameId, p_new_state: game,
+        p_current_turn_user_id: nextTurn ? nextTurn.id : null,
+        p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
+    });
+    applyMultiState(game);
+    processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+}
+
+async function sendMultiAction(action) {
+    await supabaseClient.rpc('rpc_send_action', { p_game_id: currentMultiGameId, p_action: action });
+}
+
+async function leaveMultiplayer() {
+    if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
+    if (multiEventsChannel) { supabaseClient.removeChannel(multiEventsChannel); multiEventsChannel = null; }
+    if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
+    if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
+    try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e) {}
+    currentMultiGameId = null;
+    multiLastProcessedEventId = 0;
+    returnToSetup();
+}
+
+/* ANNULAIRE */
+async function openDirectory() {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    $('modal-directory').classList.remove('hidden');
+    const list = $('directory-list');
+    list.innerHTML = '<p class="text-xs text-slate-400 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</p>';
+    const { data, error } = await supabaseClient.rpc('rpc_list_available_players');
+    list.innerHTML = '';
+    if (error) { list.innerHTML = `<p class="text-xs text-red-400 text-center">Erreur : ${escapeHtml(error.message)}</p>`; return; }
+    if (!data || data.length === 0) { list.innerHTML = '<p class="text-xs text-slate-400 italic text-center">Aucun joueur disponible.</p>'; return; }
+    data.forEach(p => {
+        const color = p.status === 'available' ? 'text-emerald-400' : p.status === 'solo' ? 'text-blue-400' : 'text-red-400';
+        const label = p.status === 'available' ? 'Disponible' : p.status === 'solo' ? 'En Solo' : (p.status === 'waiting_multi' ? 'Cherche une partie' : 'En partie');
+        const canInvite = p.status === 'available' || p.status === 'waiting_multi';
+        const safeName = escapeHtml(p.username).replace(/'/g, "\\'");
+        list.innerHTML += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg mb-2"><div class="text-left"><div class="text-sm font-bold text-white">${escapeHtml(p.username)}</div><div class="text-[10px] ${color} font-bold">${label}</div></div><button onclick="window._invitePlayer('${p.user_id}','${safeName}')" ${!canInvite ? 'disabled' : ''} class="bg-amber-500 disabled:opacity-30 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg">Inviter</button></div>`;
+    });
+}
+window._invitePlayer = async (userId, name) => {
+    $('modal-directory').classList.add('hidden');
+    await enterMultiplayer('invite', { inviteeId: userId, inviteeName: name });
+};
+
+/* SALLE PRIVÉE (overlay d'attente) */
+function showPrivateRoomOverlay(code) {
+    let ov = $('private-room-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'private-room-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><h2 class="text-xl font-black text-white mb-2">Salle privée créée</h2><p class="text-xs text-slate-400 mb-4">Partagez ce code</p><div class="bg-slate-950 border border-slate-700 rounded-2xl py-4 mb-4"><div id="private-room-code" class="text-3xl font-black text-amber-400 tracking-widest"></div></div><p class="text-[11px] text-slate-500 mb-4">Dès qu'un joueur rejoint, la partie démarre automatiquement.</p><button id="btn-copy-private-code" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs mb-2">Copier le code</button><button id="btn-cancel-private" class="w-full bg-red-950/60 text-red-300 py-2 rounded-xl text-xs">Annuler</button></div>`;
+        document.body.appendChild(ov);
+    }
+    $('private-room-code').textContent = code;
+    ov.classList.remove('hidden');
+    $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
+    $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
+    const watch = setInterval(async () => {
+        const { data: g } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
+        if (g && g.player_count >= 2) { clearInterval(watch); ov.classList.add('hidden'); await attachToGame(g.id, true); }
+    }, 1000);
+}
+
+/* ACTIONS HUMAINES (bifurcation solo / multi) */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
     if (!card || !Engine8Master.isCardPlayable(game, card)) return;
-
+    if (currentMultiGameId) {
+        if (multiIsHost) {
+            const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
+            const toRect = $('discard-pile-container').getBoundingClientRect();
+            state.isAnimating = true; state.isHumanTurn = false;
+            const result = Engine8Master.playCard(game, human.id, idx);
+            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            state.pendingDiscardAnimation = true; updateUI();
+            const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
+            if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
+            await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+            const next = game.players[game.currentPlayerIdx];
+            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
+            applyMultiState(game);
+            if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); }
+        } else {
+            await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
+            state.isHumanTurn = false; updateUI();
+            $('action-banner').innerText = 'Action envoyée, en attente...';
+        }
+        return;
+    }
     const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
     const toRect = $('discard-pile-container').getBoundingClientRect();
     state.isAnimating = true; state.isHumanTurn = false;
-
     const result = Engine8Master.playCard(game, human.id, idx);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
-    
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
     await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
-    
     state.isAnimating = false;
-    if (result.events.find(e => e.type === 'ROUND_ENDED')) { showRoundEndModal(result.events.find(e => e.type === 'ROUND_ENDED').summary, result.events.find(e => e.type === 'ROUND_ENDED').winnerId); return; }
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
     scheduleNextTurn();
 }
-
 async function handleHumanDraw() {
     if (!state.isHumanTurn || state.isAnimating) return;
-    const human = humanPlayer(); state.isAnimating = true; state.isHumanTurn = false;
+    const human = humanPlayer();
+    if (currentMultiGameId) {
+        if (multiIsHost) {
+            state.isAnimating = true; state.isHumanTurn = false;
+            const result = Engine8Master.drawCard(game, human.id);
+            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
+            const next = game.players[game.currentPlayerIdx];
+            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+            applyMultiState(game);
+        } else {
+            await sendMultiAction({ type: 'DRAW_CARD' });
+            state.isHumanTurn = false; updateUI();
+            $('action-banner').innerText = 'Pioche envoyée, en attente...';
+        }
+        return;
+    }
+    state.isAnimating = true; state.isHumanTurn = false;
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
     updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
     state.isAnimating = false;
-    if (result.events.find(e => e.type === 'ROUND_ENDED')) { showRoundEndModal(result.events.find(e => e.type === 'ROUND_ENDED').summary, result.events.find(e => e.type === 'ROUND_ENDED').winnerId); return; }
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
-
 async function executeAiTurn(bot) {
     if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
     const playable = Engine8Master.getPlayableCards(game, bot.id);
     if (playable.length === 0) {
         const result = Engine8Master.drawCard(game, bot.id);
         updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
-        if (result.events.find(e => e.type === 'ROUND_ENDED')) { showRoundEndModal(result.events.find(e => e.type === 'ROUND_ENDED').summary, result.events.find(e => e.type === 'ROUND_ENDED').winnerId); return; }
+        if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
         scheduleNextTurn(); return;
     }
     const sorted = [...playable].sort((a, b) => Engine8Master.cardPoints(a.card) - Engine8Master.cardPoints(b.card));
     let chosenIdx = (state.aiDifficulty === 'easy') ? playable[Math.floor(Math.random() * playable.length)].idx : (sorted.find(x => x.card.value !== '8') || sorted[0]).idx;
-    
     const fromRect = botMiniRect(bot), toRect = $('discard-pile-container').getBoundingClientRect();
     const result = Engine8Master.playCard(game, bot.id, chosenIdx);
     if (!result.valid) { scheduleNextTurn(); return; }
-    
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
     await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
-    
-    if (result.events.find(e => e.type === 'ROUND_ENDED')) { showRoundEndModal(result.events.find(e => e.type === 'ROUND_ENDED').summary, result.events.find(e => e.type === 'ROUND_ENDED').winnerId); return; }
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
-
 function openCardCountModal(maxCards, callback) {
     const range = $('card-count-modal-range');
-    range.min = CONFIG.MIN_CARDS_PER_DECK;
-    range.max = maxCards;
-    let chosen = Math.min(6, maxCards);
-    range.value = chosen;
+    range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
+    let chosen = Math.min(6, maxCards); range.value = chosen;
     $('card-count-modal-display').innerText = chosen;
-
-    const newRange = range.cloneNode(true);
-    range.parentNode.replaceChild(newRange, range);
-    newRange.addEventListener('input', (e) => {
-        chosen = parseInt(e.target.value, 10);
-        $('card-count-modal-display').innerText = chosen;
-    });
-
-    const btn = $('btn-confirm-card-count');
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    newBtn.addEventListener('click', () => {
-        $('modal-card-count').classList.add('hidden');
-        AudioFX.play('click');
-        callback(chosen);
-    });
-
+    const newRange = range.cloneNode(true); range.parentNode.replaceChild(newRange, range);
+    newRange.addEventListener('input', (e) => { chosen = parseInt(e.target.value, 10); $('card-count-modal-display').innerText = chosen; });
+    const btn = $('btn-confirm-card-count'); const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => { $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
     $('modal-card-count').classList.remove('hidden');
 }
-
 function prepareNextRound() {
-    if (!game || state.roundProcessing) return; 
+    if (!game || state.roundProcessing) return;
     state.roundProcessing = true;
-    
-    if (game.roundNumber === 0) { 
-        game.config.cardsPerPlayer = state.cardsPerPlayer;
-        startRoundImmediate(); 
-        return; 
-    }
-
+    if (game.roundNumber === 0) { game.config.cardsPerPlayer = state.cardsPerPlayer; startRoundImmediate(); return; }
     const active = game.players.filter(p => !p.eliminated);
     const maxScore = Math.max(...active.map(p => game.scores[p.id]));
     const candidates = active.filter(p => game.scores[p.id] === maxScore);
     const dealer = candidates[Math.floor(Math.random() * candidates.length)];
     const human = humanPlayer();
-
-    if (dealer.isHuman) {
-        openCardCountModal(game.config.maxCards, (chosen) => {
-            game.config.cardsPerPlayer = chosen;
-            startRoundImmediate();
-        });
+    if (dealer.isHuman && !currentMultiGameId) {
+        openCardCountModal(game.config.maxCards, (chosen) => { game.config.cardsPerPlayer = chosen; startRoundImmediate(); });
     } else {
         const maxCards = game.config.maxCards;
         game.config.cardsPerPlayer = CONFIG.MIN_CARDS_PER_DECK + Math.floor(Math.random() * (maxCards - CONFIG.MIN_CARDS_PER_DECK + 1));
         startRoundImmediate();
     }
 }
-
 function startRoundImmediate() {
     state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
@@ -1018,18 +1076,15 @@ function startRoundImmediate() {
     updateUI();
     const effectEvents = result.events.filter(e => !['DEAL_HAND', 'STARTING_CARD', 'TURN_CHANGED'].includes(e.type));
     processEvents(effectEvents);
-    setTimeout(() => scheduleNextTurn(), 400);
+    setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 400);
 }
-
 function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.lastRoundSummary = summary; game.lastWinnerId = winnerId; saveGameState();
-
     let html = '';
     if (summary.bonuses && summary.bonuses.length) summary.bonuses.forEach(b => { html += `<div class="flex justify-between text-amber-400 font-bold"><span>${escapeHtml(getPlayerName(b.playerId))} — ${b.type}</span><span>${b.amount} pts</span></div>`; });
     else html += `<div class="flex justify-between text-emerald-400 font-bold"><span>🏆 ${escapeHtml(getPlayerName(winnerId))}</span><span>0 pt</span></div>`;
     if (summary.penalties) summary.penalties.forEach(p => { html += `<div class="flex justify-between text-slate-300"><span>${escapeHtml(getPlayerName(p.playerId))}</span><span class="text-red-400">+${p.amount} pts</span></div>`; });
-    
     $('board-winner-title').innerText = `Victoire de ${escapeHtml(getPlayerName(winnerId))} !`;
     $('board-summary-list').innerHTML = html;
     $('board-winner-panel').classList.remove('hidden');
@@ -1037,19 +1092,16 @@ function showRoundEndModal(summary, winnerId) {
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
     updateUI();
 }
-
 function showGameOverModal() {
     const ranking = Engine8Master.buildRanking(game), winner = ranking.find(r => !r.eliminated) || ranking[0], humanWon = winner && winner.isHuman;
     saveGameResult(winner);
     localStorage.removeItem('8master-active-game');
-
     $('game-over-icon').textContent = humanWon ? '🏆' : '💀';
     $('game-over-title').textContent = humanWon ? 'Victoire !' : 'Partie terminée';
     $('game-over-ranking').innerHTML = ranking.map((p, i) => `<div class="flex justify-between py-1.5 px-2 rounded-lg ${p.isHuman ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-slate-900/60'}"><span class="font-bold text-xs">${i + 1}. ${escapeHtml(p.name)} ${p.eliminated ? '☠️' : '👑'}</span><span class="font-black text-emerald-400 text-xs">${p.score} pts</span></div>`).join('');
     $('modal-game-over').classList.remove('hidden');
     if (humanWon) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
 }
-
 function launchConfetti() {
     for (let i = 0; i < 40; i++) {
         const c = document.createElement('div'); c.className = 'confetti';
@@ -1057,378 +1109,130 @@ function launchConfetti() {
         document.body.appendChild(c); setTimeout(() => c.remove(), 3500);
     }
 }
-
 function startGameSession() {
-    if (!state.user) { alert("Connectez-vous pour jouer."); return; }
-    updateStatus('solo');
-    saveUIState();
-
+    if (!state.user) { alert("Connectez-vous."); return; }
     const rawName = $('player-name-input').value.trim() || 'Invité';
     state.aiDifficulty = $('ai-difficulty-select').value;
     const players = [{ id: 0, name: rawName, isHuman: true }];
     for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
-    
     game = Engine8Master.createGame({ players, cardsPerPlayer: state.cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
-    
-    state.journal = []; state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
     prepareNextRound();
 }
-
-async function updateStatus(status) {
-    if (!state.user) return;
-    try { await supabaseClient.rpc('rpc_set_status', { p_status: status }); } catch(e) {}
-}
-
-async function sendInvitation(targetId, hostGameCode) {
-    if (!state.user) return;
-    if (hostGameCode === '8M-XXXX') return alert("Vous devez d'abord créer ou rejoindre une salle d'attente !");
-    try {
-        const { data: game } = await supabaseClient.from('games').select('id').eq('join_code', hostGameCode).single();
-        if (!game) throw new Error("Salle introuvable.");
-        
-        await supabaseClient.from('invitations').insert([{ 
-            game_id: game.id, 
-            inviter_id: state.user.id, 
-            invitee_id: targetId 
-        }]);
-        alert("Invitation envoyée !");
-    } catch(e) {
-        alert("Erreur d'invitation: " + e.message);
-    }
-}
-
-async function checkIncomingInvitations() {
-    if (!state.user) return;
-    try {
-        const { data } = await supabaseClient.from('invitations')
-            .select('*, games(join_code), profiles!invitations_inviter_id_fkey(username_display)')
-            .eq('invitee_id', state.user.id)
-            .is('accepted', null)
-            .gt('expires_at', new Date().toISOString());
-
-        if (data && data.length > 0) {
-            const inv = data[0]; 
-            const inSolo = (game && !game.gameOver && game.mode === 'solo'); 
-            
-            $('invite-text').innerHTML = `<b>${inv.profiles.username_display}</b> vous invite à rejoindre sa partie.<br><br>${inSolo ? '(⚠️ Vous êtes en partie Solo, rejoindre annulera votre partie)' : ''}`;
-            $('modal-invite-received').classList.remove('hidden');
-            
-            $('btn-accept-invite').onclick = async () => {
-                $('modal-invite-received').classList.add('hidden');
-                await supabaseClient.from('invitations').update({ accepted: true }).eq('id', inv.id);
-                if (inSolo) returnToSetup(); 
-                openWaitingRoom(inv.games.join_code, false, false);
-            };
-            
-            $('btn-decline-invite').onclick = async () => {
-                $('modal-invite-received').classList.add('hidden');
-                await supabaseClient.from('invitations').update({ accepted: false }).eq('id', inv.id);
-            };
-        }
-    } catch(e) {}
-}
-
-async function openDirectory() {
-    $('modal-directory').classList.remove('hidden');
-    const list = $('directory-list');
-    list.innerHTML = '<p class="text-xs text-slate-400 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</p>';
-    
-    const { data } = await supabaseClient.from('profiles').select('*').neq('id', state.user.id).neq('status', 'offline');
-    list.innerHTML = '';
-    
-    if (data && data.length > 0) {
-        data.forEach(p => {
-            let statusColor = p.status === 'available' ? 'text-emerald-400' : p.status === 'solo' ? 'text-blue-400' : 'text-red-400';
-            let statusLabel = p.status === 'available' ? 'Disponible' : p.status === 'solo' ? 'En Solo' : 'En partie';
-            
-            const code = $('room-code-display').textContent;
-            const canInvite = code !== '8M-XXXX' && p.status === 'available';
-            
-            list.innerHTML += `
-                <div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg mb-2">
-                    <div class="text-left">
-                        <div class="text-sm font-bold text-white">${escapeHtml(p.username_display)}</div>
-                        <div class="text-[10px] ${statusColor} font-bold">${statusLabel}</div>
-                    </div>
-                    <button onclick="sendInvitation('${p.id}', '${code}')" ${!canInvite ? 'disabled' : ''} class="bg-amber-500 disabled:opacity-30 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg">Inviter</button>
-                </div>
-            `;
-        });
-    } else {
-        list.innerHTML = '<p class="text-xs text-slate-400 italic text-center">Aucun joueur en ligne.</p>';
-    }
-}
-
-async function openMultiModal() {
-    if (!state.user) {
-        alert("Veuillez vous connecter pour jouer en multijoueur.");
-        openAuthModal(); return;
-    }
-    $('modal-multi').classList.remove('hidden');
-    $('multi-error').classList.add('hidden');
-    $('join-code-input').value = '';
-}
-
-$('btn-open-multi').onclick = openMultiModal;
-
-$('btn-quick-match').onclick = async () => {
-    const btn = $('btn-quick-match');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Recherche...';
-    const displayName = state.user.user_metadata.username || 'Joueur';
-    
-    try {
-        const { data, error } = await supabaseClient.rpc('rpc_quick_match', { p_display_name: displayName });
-        if (error) throw error;
-        
-        $('modal-multi').classList.add('hidden');
-        openWaitingRoom(data.join_code, data.is_host, true);
-    } catch (err) {
-        $('multi-error').textContent = err.message;
-        $('multi-error').classList.remove('hidden');
-    } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Match Rapide (1v1)';
-    }
-};
-
-$('btn-create-room').onclick = async () => {
-    const btn = $('btn-create-room');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
-    const displayName = state.user.user_metadata.username || 'Hôte';
-    
-    try {
-        const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', { p_display_name: displayName });
-        if (error) throw error;
-        
-        $('modal-multi').classList.add('hidden');
-        openWaitingRoom(code, true, false);
-    } catch (err) {
-        $('multi-error').textContent = err.message;
-        $('multi-error').classList.remove('hidden');
-    } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Créer une salle privée';
-    }
-};
-
-$('btn-join-room').onclick = async () => {
-    const code = $('join-code-input').value.trim().toUpperCase();
-    if (!code) return;
-    
-    const btn = $('btn-join-room');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
-    const displayName = state.user.user_metadata.username || 'Joueur';
-
-    try {
-        const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', { p_code: code, p_display_name: displayName });
-        if (error) throw error;
-        
-        $('modal-multi').classList.add('hidden');
-        openWaitingRoom(code, false, false);
-    } catch (err) {
-        $('multi-error').textContent = err.message;
-        $('multi-error').classList.remove('hidden');
-    } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code';
-    }
-};
-
-async function openWaitingRoom(code, isHost, quickMatch = false) {
-    $('waiting-room').classList.remove('hidden');
-    saveUIState();
-    if (quickMatch) {
-        $('quick-match-search').classList.remove('hidden');
-        $('private-match-info').classList.add('hidden');
-    } else {
-        $('quick-match-search').classList.add('hidden');
-        $('private-match-info').classList.remove('hidden');
-        $('room-code-display').textContent = code;
-    }
-    $('btn-start-multi-game').classList.toggle('hidden', !isHost);
-
-    if (realtimeSubscription) supabaseClient.removeChannel(realtimeSubscription);
-    realtimeSubscription = supabaseClient.channel('room-' + code)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players' }, payload => { updateWaitingList(code, quickMatch, isHost); })
-        .subscribe();
-
-    if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(() => updateWaitingList(code, quickMatch, isHost), 2000);
-
-    updateWaitingList(code, quickMatch, isHost);
-}
-
-async function updateWaitingList(code, quickMatch, isHost) {
-    const { data: game } = await supabaseClient.from('games').select('id').eq('join_code', code).single();
-    if (!game) return;
-    currentMultiGameId = game.id;
-
-    const { data: players } = await supabaseClient.from('game_players').select('display_name').eq('game_id', game.id).order('seat');
-    const list = $('waiting-players-list');
-    list.innerHTML = '';
-    if (players && players.length > 0) {
-        players.forEach((p) => {
-            list.innerHTML += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg"><span class="text-sm text-slate-200 font-bold"><i class="fa-solid fa-user text-xs mr-2 text-amber-400"></i>${escapeHtml(p.display_name)}</span> <span class="text-[10px] text-emerald-400">Prêt</span></div>`;
-        });
-        if (quickMatch && players.length >= 2) {
-            $('quick-match-search').classList.add('hidden');
-            $('private-match-info').classList.remove('hidden');
-            $('room-code-display').textContent = code;
-            $('btn-start-multi-game').classList.toggle('hidden', !isHost);
-        }
-    } else {
-        list.innerHTML = '<p class="text-xs text-slate-500 italic">En attente...</p>';
-    }
-}
-
-$('btn-copy-code').onclick = () => {
-    navigator.clipboard.writeText($('room-code-display').textContent);
-    $('btn-copy-code').innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i>';
-    setTimeout(() => { $('btn-copy-code').innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 2000);
-};
-
-$('btn-leave-room').onclick = () => {
-    if (realtimeSubscription) supabaseClient.removeChannel(realtimeSubscription);
-    if (pollingInterval) clearInterval(pollingInterval);
-    $('waiting-room').classList.add('hidden');
-    $('room-code-display').textContent = '8M-XXXX';
-    currentMultiGameId = null;
-    updateStatus('available');
-    saveUIState();
-    $('setup-screen').classList.remove('hidden');
-};
-
-$('btn-start-multi-game').onclick = () => {
-    alert("🚀 Le moteur multijoueur en temps réel arrive à la prochaine étape ! Pour l'instant, le lobby est fonctionnel.");
-};
-
 function returnToSetup() {
-    if (state.user) updateStatus('available');
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     localStorage.removeItem('8master-active-game');
-    localStorage.setItem('8master-view', 'menu');
-    ['modal-rules','modal-suit-picker','modal-scoreboard','modal-card-count','modal-settings','board-winner-panel','modal-game-over','journal-panel','modal-multi','modal-directory','modal-invite-received','waiting-room'].forEach(id => {
-        const el = $(id); if (el) el.classList.add('hidden');
-    });
+    ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','modal-directory','modal-invite-received','private-room-overlay','multi-search-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
     $('setup-screen').classList.remove('hidden');
     $('game-board').classList.add('hidden');
 }
 
+/* ÉVÉNEMENTS DOM */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
-    const saved = Storage.load(); 
-    if (saved) { 
-        state.botSpeed = saved.botSpeed || 'normal'; 
-        state.theme = saved.theme || 'dark'; 
-        state.aiCount = saved.aiCount || 2;
-        state.aiDifficulty = saved.difficulty || 'medium';
+    const saved = Storage.load();
+    if (saved) {
+        state.botSpeed = saved.botSpeed || 'normal'; state.theme = saved.theme || 'dark';
+        state.aiCount = saved.aiCount || 2; state.aiDifficulty = saved.difficulty || 'medium';
         state.cardsPerPlayer = saved.cardsPerPlayer || 6;
-        
-        applyTheme(state.theme); 
-        updateSpeedButton();
-        
+        applyTheme(state.theme); updateSpeedButton();
         $('ai-difficulty-select').value = state.aiDifficulty;
         $('cards-range-input').value = state.cardsPerPlayer;
         $('cards-count-display').innerText = state.cardsPerPlayer;
-        
-        document.querySelectorAll('.ai-count-btn').forEach(b => {
-            if (parseInt(b.getAttribute('data-count')) === state.aiCount) {
-                b.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs";
-            }
-        });
+        document.querySelectorAll('.ai-count-btn').forEach(b => { if (parseInt(b.getAttribute('data-count')) === state.aiCount) b.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; });
     }
-    
     $('btn-open-auth').onclick = openAuthModal;
     $('btn-close-auth').onclick = () => $('modal-auth').classList.add('hidden');
     $('tab-login').onclick = () => switchAuthTab('login');
     $('tab-register').onclick = () => switchAuthTab('register');
     $('login-form').onsubmit = handleLoginSubmit;
-
     $('btn-show-profile').onclick = showProfile;
     $('btn-close-profile').onclick = () => $('modal-profile').classList.add('hidden');
-    
-    ['auth-username', 'auth-whatsapp', 'auth-password', 'auth-password-confirm'].forEach(id => {
-        $(id).addEventListener('input', validateAuthForm);
-    });
-
+    ['auth-username', 'auth-whatsapp', 'auth-password', 'auth-password-confirm'].forEach(id => $(id).addEventListener('input', validateAuthForm));
     $('auth-country').addEventListener('change', (e) => {
-        const [code, len] = e.target.value.split('|');
-        currentPhoneLength = parseInt(len);
-        $('auth-whatsapp').maxLength = currentPhoneLength;
-        $('auth-whatsapp').value = ''; 
-        $('auth-whatsapp').classList.remove('border-emerald-500', 'text-emerald-400');
-        $('auth-whatsapp').classList.add('border-slate-800');
+        const [, len] = e.target.value.split('|'); currentPhoneLength = parseInt(len);
+        $('auth-whatsapp').maxLength = currentPhoneLength; $('auth-whatsapp').value = '';
+        $('auth-whatsapp').classList.remove('border-emerald-500', 'text-emerald-400'); $('auth-whatsapp').classList.add('border-slate-800');
         validateAuthForm();
     });
-
     document.querySelectorAll('.toggle-password').forEach(btn => {
         btn.addEventListener('click', () => {
-            const target = $(btn.getAttribute('data-target'));
-            const icon = btn.querySelector('i');
+            const target = $(btn.getAttribute('data-target')); const icon = btn.querySelector('i');
             if (target.type === 'password') { target.type = 'text'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
             else { target.type = 'password'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
         });
     });
-
     $('btn-auth-next').onclick = handleAuthStep1;
     $('btn-auth-back').onclick = () => { $('auth-step-2').classList.add('hidden'); $('auth-step-1').classList.remove('hidden'); };
     $('btn-auth-submit').onclick = handleAuthSubmit;
-    $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); returnToSetup(); checkAuth(); };
-
-    $('cards-range-input').addEventListener('input', (e) => {
-        state.cardsPerPlayer = parseInt(e.target.value, 10);
-        $('cards-count-display').innerText = state.cardsPerPlayer;
-        Storage.save();
-    });
-
+    $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); await leaveMultiplayer(); checkAuth(); };
+    $('cards-range-input').addEventListener('input', (e) => { state.cardsPerPlayer = parseInt(e.target.value, 10); $('cards-count-display').innerText = state.cardsPerPlayer; Storage.save(); });
     document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = "ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs"); e.target.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
     $('player-name-input').addEventListener('change', Storage.save);
-    
     $('btn-start-game-final').onclick = startGameSession;
-    
+    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
+    $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
+    $('btn-show-directory').onclick = openDirectory;
+    $('btn-close-directory').onclick = () => $('modal-directory').classList.add('hidden');
+    $('btn-quick-match').onclick = async () => { $('modal-multi').classList.add('hidden'); await enterMultiplayer('quick'); };
+    $('btn-create-room').onclick = async () => {
+        if (!state.user) { alert('Connectez-vous.'); return; }
+        const displayName = state.user.user_metadata?.username || 'Hôte';
+        const btn = $('btn-create-room'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        try {
+            const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', { p_display_name: displayName });
+            if (error) throw error;
+            $('modal-multi').classList.add('hidden');
+            showPrivateRoomOverlay(code);
+        } catch (err) { alert('Erreur : ' + err.message); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Créer une salle privée'; }
+    };
+    $('btn-join-room').onclick = async () => {
+        const code = $('join-code-input').value.trim().toUpperCase(); if (!code) return;
+        $('modal-multi').classList.add('hidden');
+        await enterMultiplayer('private', { code });
+    };
     $('btn-voluntary-draw').onclick = handleHumanDraw;
     $('deck-pile').onclick = () => { if (state.isHumanTurn && !state.isAiThinking && !state.isAnimating) handleHumanDraw(); };
     $('btn-sort-hand').onclick = () => { const h = humanPlayer(); if (h) { Engine8Master.sortHand(h); updateUI(); } };
-    
-    $('btn-abandon').onclick = () => { 
-        if (confirm('Quitter la partie ? La progression sera perdue.')) { 
-            returnToSetup();
-        } 
-    };
-    
+    $('btn-abandon').onclick = () => { if (confirm('Quitter la partie ?')) { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); } };
     $('btn-bot-speed').onclick = () => { let idx = SPEED_LEVELS.findIndex(s => s.key === state.botSpeed); state.botSpeed = SPEED_LEVELS[(idx + 1) % SPEED_LEVELS.length].key; updateSpeedButton(); Storage.save(); };
     $('btn-show-rules').onclick = () => $('modal-rules').classList.remove('hidden');
     $('btn-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
     $('btn-modal-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
     $('btn-theme').onclick = () => { applyTheme(state.theme === 'dark' ? 'light' : 'dark'); Storage.save(); };
-    
-    document.querySelectorAll('.suit-select-btn').forEach(b => b.onclick = (e) => {
+    document.querySelectorAll('.suit-select-btn').forEach(b => b.onclick = async (e) => {
         $('modal-suit-picker').classList.add('hidden'); state.needsSuitChoice = false;
-        const res = Engine8Master.chooseSuit(game, humanPlayer().id, e.target.getAttribute('data-suit'));
+        const suit = e.target.getAttribute('data-suit');
+        if (currentMultiGameId) {
+            if (multiIsHost) {
+                const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
+                if (res.valid) {
+                    const next = game.players[game.currentPlayerIdx];
+                    await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+                    applyMultiState(game); processEvents(res.events);
+                }
+            } else { await sendMultiAction({ type: 'CHOOSE_SUIT', suit }); }
+            return;
+        }
+        const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
         if (res.valid) { updateUI(); processEvents(res.events); } scheduleNextTurn();
     });
-    
-    $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); prepareNextRound(); };
-    $('btn-new-game').onclick = () => { returnToSetup(); };
-
-    $('btn-show-directory').onclick = openDirectory;
-    $('btn-close-directory').onclick = () => $('modal-directory').classList.add('hidden');
-
+    $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); if (currentMultiGameId) applyMultiState(game); else prepareNextRound(); };
+    $('btn-new-game').onclick = () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); };
     setInterval(() => {
-        if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
+        if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing || currentMultiGameId) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
         const cur = game.players[game.currentPlayerIdx];
         if (!cur || cur.isHuman) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
         if (_watchdogLastIdx === game.currentPlayerIdx) { _watchdogTick++; if (_watchdogTick >= 2) { _watchdogTick = 0; executeAiTurn(cur); } }
         else { _watchdogLastIdx = game.currentPlayerIdx; _watchdogTick = 0; }
     }, 4000);
-
-    checkAuth().then(() => {
-        if (!restoreUIState()) {
-            $('setup-screen').classList.remove('hidden');
-            $('game-board').classList.add('hidden');
-        }
-        invitePollingInterval = setInterval(checkIncomingInvitations, 3000);
-    }).catch(err => console.warn(err));
+    checkAuth().finally(() => {
+        if (!loadGameState()) { $('setup-screen').classList.remove('hidden'); $('game-board').classList.add('hidden'); }
+    });
 });
 </script>
 </body>
