@@ -174,7 +174,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODAL MULTIJOUEUR (simplifié : plus d'annuaire ni de match rapide) -->
+<!-- MODAL MULTIJOUEUR -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -272,7 +272,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
     <div id="effect-zone"></div>
 
-    <!-- Overlay "En attente de l'hôte" (visible tant que l'état n'est pas poussé) -->
+    <!-- Overlay "En attente de l'hôte" -->
     <div id="waiting-host-overlay" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-30 hidden">
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-amber-500 mb-4"></div>
         <h3 class="text-lg font-black text-amber-400 mb-2">En attente de l'hôte…</h3>
@@ -480,7 +480,7 @@ let multiPollInterval = null;
 let multiLastProcessedEventId = 0;
 let multiIsHost = false;
 let globalInvitePollInterval = null;
-let ignoreGameId = null; // pour éviter de re-basculer sur une partie qu'on vient de quitter
+let ignoreGameId = null;
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
@@ -661,7 +661,6 @@ async function checkAuth() {
             state.user = session.user;
             $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
             $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
-            // Pseudo auto : bandeau visible, input masqué
             const pseudo = session.user.user_metadata.username || 'Joueur';
             $('player-name-input').value = pseudo;
             $('pseudo-field-wrapper').classList.add('hidden');
@@ -787,7 +786,7 @@ function scheduleNextTurn() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MULTIJOUEUR : création de salle + jonction par code
+   MULTIJOUEUR
    ═══════════════════════════════════════════════════════════════════════════ */
 
 async function createPrivateRoom(cardsPerPlayer) {
@@ -841,7 +840,6 @@ function showPrivateRoomOverlay(code) {
     $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
     $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
 
-    // Surveille si quelqu'un rejoint → démarrage auto
     const watch = setInterval(async () => {
         const { data: g, error } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
         if (error || !g) { clearInterval(watch); return; }
@@ -857,10 +855,9 @@ async function attachToGame(gameId, isHost) {
     currentMultiGameId = gameId;
     multiIsHost = isHost;
     multiLastProcessedEventId = 0;
-    ['setup-screen','modal-multi','modal-directory','modal-create-room'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+    ['setup-screen','modal-multi','modal-create-room'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
     $('game-board').classList.remove('hidden');
 
-    // Overlay d'attente tant que l'état n'est pas disponible
     const waitingOverlay = $('waiting-host-overlay');
     const { data: gameRow, error } = await supabaseClient.from('games').select('state_json, host_id, status').eq('id', gameId).single();
     if (error || !gameRow) { alert('Partie introuvable.'); leaveMultiplayer(); return; }
@@ -868,15 +865,12 @@ async function attachToGame(gameId, isHost) {
     const hasState = gameRow.state_json && Object.keys(gameRow.state_json).length > 0;
 
     if (isHost && !hasState) {
-        // L'hôte initialise
         waitingOverlay.classList.add('hidden');
         await pushInitialState(gameId);
     } else if (hasState) {
-        // L'invité reçoit l'état déjà prêt
         waitingOverlay.classList.add('hidden');
         applyMultiState(gameRow.state_json);
     } else {
-        // L'invité attend l'état
         waitingOverlay.classList.remove('hidden');
     }
 
@@ -890,7 +884,17 @@ async function attachToGame(gameId, isHost) {
                     applyMultiState(payload.new.state_json);
                 }
             })
-        .subscribe();
+        .subscribe((status) => {
+            // ✅ CORRECTION : dès que le canal est prêt, on relit la BDD immédiatement
+            if (status === 'SUBSCRIBED') {
+                supabaseClient.from('games').select('state_json').eq('id', gameId).single().then(({data}) => {
+                    if (data && data.state_json && Object.keys(data.state_json).length > 0) {
+                        waitingOverlay.classList.add('hidden');
+                        applyMultiState(data.state_json);
+                    }
+                });
+            }
+        });
 
     // L'hôte écoute les actions
     if (isHost) {
@@ -901,25 +905,29 @@ async function attachToGame(gameId, isHost) {
             .subscribe();
     }
 
-    // Polling de secours (2s) pour rattraper les événements manqués
+    // Polling de secours rapide (1s), s'arrête dès que l'état est chargé
     if (multiPollInterval) clearInterval(multiPollInterval);
     multiPollInterval = setInterval(async () => {
+        if (game && game.players && game.players.length > 0 && waitingOverlay.classList.contains('hidden')) return;
         const { data } = await supabaseClient.from('games').select('state_json').eq('id', gameId).single();
         if (data && data.state_json && Object.keys(data.state_json).length > 0) {
             waitingOverlay.classList.add('hidden');
             applyMultiState(data.state_json);
         }
-    }, 2000);
+    }, 1000);
 }
 
 async function pushInitialState(gameId) {
+    // ✅ CORRECTION : attendre 1.5s que la BDD soit synchro entre les deux joueurs
+    await new Promise(r => setTimeout(r, 1500));
+
     const { data: players, error } = await supabaseClient.from('game_players').select('user_id, display_name, seat').eq('game_id', gameId).order('seat');
     if (error || !players || players.length < 2) {
-        $('waiting-host-overlay').classList.remove('hidden');
+        // Retenter dans 2s si le 2ème joueur n'est pas encore totalement enregistré
+        setTimeout(() => pushInitialState(gameId), 2000);
         return;
     }
     const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
-    // Récupérer les paramètres (cartes par joueur) depuis games
     const { data: g } = await supabaseClient.from('games').select('cards_per_player').eq('id', gameId).single();
     const cardsPerPlayer = g?.cards_per_player || 6;
 
@@ -1165,23 +1173,20 @@ function returnToSetup() {
     $('game-board').classList.add('hidden');
 }
 
-/* ───── Polling global d'invitation (détecte si on est ajouté à une partie) ───── */
+/* ───── Polling global d'invitation ───── */
 function startGlobalInvitePoll() {
     if (globalInvitePollInterval) clearInterval(globalInvitePollInterval);
     globalInvitePollInterval = setInterval(async () => {
         if (!state.user) return;
-        if (currentMultiGameId) return;                    // déjà en multi
-        if (game && !game.gameOver) return;                // en solo actif
-        // Ne pas gêner si l'utilisateur est en train de créer une salle
+        if (currentMultiGameId) return;
+        if (game && !game.gameOver) return;
         const privOverlayVisible = $('private-room-overlay') && !$('private-room-overlay').classList.contains('hidden');
         if (privOverlayVisible) return;
-
         try {
             const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
             if (error || !data || !data.found) return;
             if (data.game_id === currentMultiGameId) return;
             if (data.game_id === ignoreGameId) return;
-            // On a été ajouté à une partie active → on bascule dessus
             await attachToGame(data.game_id, data.is_host);
         } catch (e) {}
     }, 2000);
