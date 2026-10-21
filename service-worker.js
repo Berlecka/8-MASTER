@@ -3,7 +3,7 @@
  *  Version : 11 (Forcer la mise à jour du cache)
  * ========================================================================== */
 
-const CACHE_NAME = '8master-v1';
+const CACHE_NAME = '8master-v2';
 const ASSETS = [
   './',
   './index.html',
