@@ -92,7 +92,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </header>
 
-<!-- ÉCRAN MENU -->
 <main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-5 sm:p-6 my-auto text-center hidden">
     <div id="setup-step-1">
         <h2 class="text-xl font-black text-amber-400 mb-0.5">Configuration</h2>
@@ -134,7 +133,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODAL MULTI -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -151,7 +149,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- MODAL CREATE ROOM -->
 <div id="modal-create-room" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-create-room" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -167,13 +164,11 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- ÉCRAN LOBBY (salle d'attente) -->
 <div id="waiting-room" class="fixed inset-0 bg-slate-950 z-[90] flex items-center justify-center p-4 hidden">
     <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative shadow-2xl">
         <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg"><i class="fa-solid fa-users"></i></div>
         <h2 class="text-2xl font-black text-white mb-1">Salle d'attente</h2>
         <p class="text-xs text-slate-400 mb-5" id="lobby-subtitle">Partagez le code pour inviter des joueurs</p>
-
         <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 mb-5">
             <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">Code de la salle</p>
             <div class="flex items-center justify-center gap-3">
@@ -181,7 +176,6 @@ body.light-theme .black-suit { color: #0f172a; }
                 <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition" title="Copier"><i class="fa-solid fa-copy"></i></button>
             </div>
         </div>
-
         <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-5 text-left">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-xs font-bold text-slate-400 uppercase">Joueurs connectés</h3>
@@ -189,19 +183,16 @@ body.light-theme .black-suit { color: #0f172a; }
             </div>
             <div id="lobby-players-list" class="space-y-2"></div>
         </div>
-
         <button id="btn-host-start" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 mb-2 opacity-50 cursor-not-allowed" disabled>
             <i class="fa-solid fa-play"></i> Lancer la partie
         </button>
         <p id="lobby-hint" class="text-[10px] text-slate-500 mb-3">Il faut au moins 2 joueurs pour lancer</p>
-
         <button id="btn-leave-lobby" class="w-full bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl transition text-xs">
             <i class="fa-solid fa-right-from-bracket"></i> Quitter la salle
         </button>
     </div>
 </div>
 
-<!-- PLATEAU -->
 <div id="game-board" class="w-full max-w-4xl felt-table p-3 sm:p-5 flex flex-col justify-between min-h-[580px] relative hidden my-auto">
     <div class="flex flex-wrap justify-between items-center bg-slate-950/70 backdrop-blur rounded-2xl p-2.5 border border-slate-800/80 mb-3 gap-2 text-xs">
         <div class="flex items-center gap-1.5"><span class="text-slate-400">Tour :</span><span id="hud-current-turn" class="font-black text-amber-400">Vous</span></div>
@@ -231,7 +222,6 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="effect-zone"></div>
 </div>
 
-<!-- PROFIL -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -246,7 +236,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- AUTH -->
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -691,7 +680,11 @@ async function enterLobby(gameId, isHost) {
         saveView('multi', gameId);
 
         const gameState = await fetchGameState(gameId);
-        if (!gameState) { alert('Salle introuvable.'); await leaveMultiplayer(); return; }
+        if (!gameState) { 
+            alert('Erreur de chargement de la salle. Vérifiez la console (F12).'); 
+            await leaveMultiplayer(); 
+            return; 
+        }
 
         currentLobbyCode = gameState.join_code;
         $('lobby-code').textContent = currentLobbyCode;
@@ -832,9 +825,16 @@ async function hostStartGame() {
 async function fetchGameState(gameId) {
     try {
         const { data, error } = await supabaseClient.rpc('rpc_get_game_state', { p_game_id: gameId });
-        if (error) { console.error('[fetchGameState]', error); return null; }
+        if (error) { 
+            console.error('❌ Erreur RPC rpc_get_game_state :', error);
+            alert("Erreur détaillée : " + error.message); 
+            return null; 
+        }
         return data;
-    } catch (e) { console.error('[fetchGameState] exception', e); return null; }
+    } catch (e) { 
+        console.error('❌ Exception fetchGameState :', e); 
+        return null; 
+    }
 }
 async function fetchGamePlayers(gameId) {
     try {
@@ -951,15 +951,15 @@ async function createPrivateRoom(cardsPerPlayer) {
     });
     if (error) { console.error('[createPrivateRoom]', error); alert('Erreur : ' + error.message); return; }
     if (!data || !data.game_id) { alert('Erreur : réponse serveur invalide.'); return; }
+    
+    // Sécurité anti-latence pour la base de données
+    await new Promise(r => setTimeout(r, 300));
+    
     await enterLobby(data.game_id, true);
 }
 
 async function joinPrivateRoom(code) {
     if (!state.user) { alert('Connectez-vous.'); return; }
-    if (code.length !== 7 || !code.startsWith('8M-')) {
-        alert('Le code doit être au format 8M-XXXX.');
-        return;
-    }
     showSearchOverlay('Connexion à la salle...');
     const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
         p_code: code, p_display_name: getDisplayName()
