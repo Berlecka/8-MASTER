@@ -92,7 +92,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </header>
 
-<main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-5 sm:p-6 my-auto text-center">
+<main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-5 sm:p-6 my-auto text-center hidden">
     <div id="setup-step-1">
         <h2 class="text-xl font-black text-amber-400 mb-0.5">Configuration</h2>
         <p class="text-xs text-slate-400 mb-5">Paramètres de la partie</p>
@@ -308,6 +308,8 @@ if (!SUPABASE_ANON_KEY.includes('COLLE_TA_CLE')) { supabaseClient = supabase.cre
 </script>
 
 <script>
+'use strict';
+
 const CONFIG = Engine8Master.CONFIG;
 const SPEED_LEVELS = [ { key: 'slow', icon: '🐢', label: '3s', ms: 3000 }, { key: 'normal', icon: '⏱️', label: '2s', ms: 2000 }, { key: 'fast', icon: '🐇', label: '1.2s', ms: 1200 }, { key: 'turbo', icon: '⚡', label: '0.6s', ms: 600 } ];
 
@@ -318,7 +320,7 @@ const state = {
     user: null, tempUserData: {}
 };
 let game = null;
-let _watchdogLastIdx = -1; let _watchdogTick = 0;
+let _watchdogLastIdx = -1, _watchdogTick = 0;
 let currentPhoneLength = 10;
 let createRoomCards = 6;
 
@@ -330,73 +332,195 @@ let multiLastProcessedEventId = 0;
 let multiIsHost = false;
 let globalInvitePollInterval = null;
 let ignoreGameId = null;
-let waitingHostStartedAt = null;
 
+/* ──────────────── Utilitaires ──────────────── */
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
-function updateSpeedButton() { const level = getSpeedLevel(state.botSpeed); if ($('speed-icon')) $('speed-icon').textContent = level.icon; if ($('speed-label')) $('speed-label').textContent = level.label; }
+function updateSpeedButton() { const l = getSpeedLevel(state.botSpeed); if ($('speed-icon')) $('speed-icon').textContent = l.icon; if ($('speed-label')) $('speed-label').textContent = l.label; }
 function getDisplayName() { return state.user?.user_metadata?.username || $('player-name-input')?.value?.trim() || 'Invité'; }
+function escapeHtml(str) { return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
+function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
+
+/* ──────────────── Persistance de vue ──────────────── */
+function saveView(view, multiGameId) {
+    try {
+        localStorage.setItem('8master-view', view);
+        if (view === 'multi' && multiGameId) localStorage.setItem('8master-multi-game-id', multiGameId);
+        else localStorage.removeItem('8master-multi-game-id');
+    } catch (e) {}
+}
+function clearView() {
+    try { localStorage.removeItem('8master-view'); localStorage.removeItem('8master-multi-game-id'); } catch (e) {}
+}
+function showOnlyScreen(screen) {
+    ['setup-screen', 'game-board'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+    ['modal-multi', 'modal-create-room', 'modal-profile', 'modal-auth', 'modal-rules', 'modal-suit-picker', 'modal-card-count', 'modal-game-over', 'board-winner-panel'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+    const priv = $('private-room-overlay'); if (priv) priv.classList.add('hidden');
+    if (screen) $(screen)?.classList.remove('hidden');
+}
+
 function saveGameState() { if (game && !game.gameOver && !currentMultiGameId) { localStorage.setItem('8master-active-game', JSON.stringify(game)); } else { localStorage.removeItem('8master-active-game'); } }
-function loadGameState() {
+function loadSoloGameState() {
     const saved = localStorage.getItem('8master-active-game');
     if (!saved) return false;
     try {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.players && parsed.players.length > 0) {
             game = parsed;
-            $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
+            $('game-board').classList.remove('hidden'); $('setup-screen').classList.add('hidden');
             updateUI();
             if (game.roundEnded) { if (game.lastRoundSummary) showRoundEndModal(game.lastRoundSummary, game.lastWinnerId); }
             else if (game.gameOver) { showGameOverModal(); }
-            else { setTimeout(() => scheduleNextTurn(), 500); }
+            else setTimeout(() => scheduleNextTurn(), 500);
             return true;
         }
     } catch (e) { localStorage.removeItem('8master-active-game'); }
     return false;
 }
 
+/* ──────────────── Audio ──────────────── */
 const AudioFX = {
     ctx: null,
     init() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } },
-    tone(freq, dur, type = 'sine', vol = 0.05) { if (!state.soundEnabled || !this.ctx) return; const o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = type; o.frequency.value = freq; o.connect(g); g.connect(this.ctx.destination); g.gain.setValueAtTime(vol, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur); o.start(); o.stop(this.ctx.currentTime + dur); },
-    play(type) { if (!this.ctx) this.init(); if(type==='draw') this.tone(400,0.08,'triangle',0.04); else if(type==='play'){ this.tone(600,0.09,'sine',0.05); setTimeout(()=>this.tone(800,0.06,'sine',0.04),50); } else if(type==='win') [523,659,784,1046].forEach((f,i)=>setTimeout(()=>this.tone(f,0.15,'sine',0.06),i*100)); else if(type==='lose') this.tone(220,0.3,'sawtooth',0.05); else if(type==='special'){ this.tone(880,0.12,'square',0.04); setTimeout(()=>this.tone(1100,0.1,'square',0.04),80); } else if(type==='click') this.tone(1200,0.03,'sine',0.03); }
+    tone(freq, dur, type = 'sine', vol = 0.05) {
+        if (!state.soundEnabled || !this.ctx) return;
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = type; o.frequency.value = freq; o.connect(g); g.connect(this.ctx.destination);
+        g.gain.setValueAtTime(vol, this.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+        o.start(); o.stop(this.ctx.currentTime + dur);
+    },
+    play(type) {
+        if (!this.ctx) this.init();
+        if (type === 'draw') this.tone(400, 0.08, 'triangle', 0.04);
+        else if (type === 'play') { this.tone(600, 0.09, 'sine', 0.05); setTimeout(() => this.tone(800, 0.06, 'sine', 0.04), 50); }
+        else if (type === 'win') [523,659,784,1046].forEach((f,i) => setTimeout(() => this.tone(f,0.15,'sine',0.06), i*100));
+        else if (type === 'lose') this.tone(220, 0.3, 'sawtooth', 0.05);
+        else if (type === 'special') { this.tone(880, 0.12, 'square', 0.04); setTimeout(() => this.tone(1100, 0.1, 'square', 0.04), 80); }
+        else if (type === 'click') this.tone(1200, 0.03, 'sine', 0.03);
+    }
 };
 
+/* ──────────────── Storage config ──────────────── */
 const Storage = {
-    save() { try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, sound: state.soundEnabled, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {} },
+    save() { try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {} },
     load() { try { const raw = localStorage.getItem('8master-config'); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
 };
-function applyTheme(theme) { state.theme = theme; if (theme === 'light') { document.body.classList.add('light-theme'); if($('theme-icon')) $('theme-icon').className = 'fa-solid fa-sun'; } else { document.body.classList.remove('light-theme'); if($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; } }
-function escapeHtml(str) { return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
-function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
-function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
-function renderCardHTML(card, isPlayable = false) { const suitClass = card.isRed ? 'red-suit' : 'black-suit', playableClass = isPlayable ? 'playable' : ''; return `<div class="playing-card ${playableClass} ${suitClass} flex flex-col justify-between p-1 bg-white select-none"><div class="card-corner text-left font-black text-[10px] leading-none">${card.value}<br><span>${card.suit}</span></div><div class="card-center text-center font-black text-xl my-auto">${card.suit}</div><div class="card-corner text-left font-black text-[10px] leading-none transform rotate-180">${card.value}<br><span>${card.suit}</span></div></div>`; }
-function animateFlight(fromRect, toRect, cardData, isFaceDown = false) { return new Promise(resolve => { if (!state.animationsEnabled || !fromRect || !toRect) { resolve(); return; } const duration = state.flightDurationMs, baseW = 68, baseH = 102; const fromCX = fromRect.left + fromRect.width / 2, fromCY = fromRect.top + fromRect.height / 2; const toCX = toRect.left + toRect.width / 2, toCY = toRect.top + toRect.height / 2; const dx = toCX - fromCX, dy = toCY - fromCY; const clone = document.createElement('div'); clone.style.cssText = `position:fixed;left:${fromCX-baseW/2}px;top:${fromCY-baseH/2}px;width:${baseW}px;height:${baseH}px;z-index:9999;pointer-events:none;transform-origin:center;transition:transform ${duration}ms cubic-bezier(0.34,1.2,0.64,1);`; if (isFaceDown) clone.innerHTML = `<div class="playing-card card-back-red flex items-center justify-center" style="width:100%;height:100%"></div>`; else if (cardData) { clone.innerHTML = renderCardHTML(cardData); const inner = clone.querySelector('.playing-card'); if (inner) inner.style.cssText='width:100%;height:100%'; } document.body.appendChild(clone); void clone.offsetWidth; requestAnimationFrame(() => { clone.style.transform = `translate(${dx}px, ${dy}px)`; }); setTimeout(() => { clone.style.opacity = '0'; setTimeout(() => { clone.remove(); resolve(); }, 150); }, duration); }); }
-function shakeElement(el) { if (!state.animationsEnabled || !el) return; el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 420); }
-function showEffectBanner(text) { const zone = $('effect-zone'); if (!zone) return; const banner = document.createElement('div'); banner.className = 'effect-banner'; banner.textContent = text; zone.prepend(banner); setTimeout(() => { banner.style.cssText='opacity:0;transform:translateX(-15px) scale(0.85);transition:0.4s;'; setTimeout(() => banner.remove(), 450); }, state.bubbleDurationMs); }
-function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
-function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
+function applyTheme(theme) { state.theme = theme; if (theme === 'light') { document.body.classList.add('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-sun'; } else { document.body.classList.remove('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; } }
 
+/* ──────────────── Rendu cartes ──────────────── */
+function renderCardHTML(card, isPlayable = false) {
+    const suitClass = card.isRed ? 'red-suit' : 'black-suit', playableClass = isPlayable ? 'playable' : '';
+    return `<div class="playing-card ${playableClass} ${suitClass} flex flex-col justify-between p-1 bg-white select-none"><div class="card-corner text-left font-black text-[10px] leading-none">${card.value}<br><span>${card.suit}</span></div><div class="card-center text-center font-black text-xl my-auto">${card.suit}</div><div class="card-corner text-left font-black text-[10px] leading-none transform rotate-180">${card.value}<br><span>${card.suit}</span></div></div>`;
+}
+function animateFlight(fromRect, toRect, cardData, isFaceDown = false) {
+    return new Promise(resolve => {
+        if (!state.animationsEnabled || !fromRect || !toRect) { resolve(); return; }
+        const duration = state.flightDurationMs, baseW = 68, baseH = 102;
+        const fromCX = fromRect.left + fromRect.width / 2, fromCY = fromRect.top + fromRect.height / 2;
+        const toCX = toRect.left + toRect.width / 2, toCY = toRect.top + toRect.height / 2;
+        const dx = toCX - fromCX, dy = toCY - fromCY;
+        const clone = document.createElement('div');
+        clone.style.cssText = `position:fixed;left:${fromCX-baseW/2}px;top:${fromCY-baseH/2}px;width:${baseW}px;height:${baseH}px;z-index:9999;pointer-events:none;transform-origin:center;transition:transform ${duration}ms cubic-bezier(0.34,1.2,0.64,1);`;
+        if (isFaceDown) clone.innerHTML = `<div class="playing-card card-back-red flex items-center justify-center" style="width:100%;height:100%"></div>`;
+        else if (cardData) { clone.innerHTML = renderCardHTML(cardData); const inner = clone.querySelector('.playing-card'); if (inner) inner.style.cssText = 'width:100%;height:100%'; }
+        document.body.appendChild(clone); void clone.offsetWidth;
+        requestAnimationFrame(() => { clone.style.transform = `translate(${dx}px, ${dy}px)`; });
+        setTimeout(() => { clone.style.opacity = '0'; setTimeout(() => { clone.remove(); resolve(); }, 150); }, duration);
+    });
+}
+function shakeElement(el) { if (!state.animationsEnabled || !el) return; el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 420); }
+function showEffectBanner(text) {
+    const zone = $('effect-zone'); if (!zone) return;
+    const banner = document.createElement('div'); banner.className = 'effect-banner'; banner.textContent = text;
+    zone.prepend(banner);
+    setTimeout(() => { banner.style.cssText = 'opacity:0;transform:translateX(-15px) scale(0.85);transition:0.4s;'; setTimeout(() => banner.remove(), 450); }, state.bubbleDurationMs);
+}
+function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
+function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p => !p.isHuman).findIndex(p => p.id === bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
+
+/* ──────────────── Auth ──────────────── */
 let currentAuthTab = 'login';
-function switchAuthTab(tab) { currentAuthTab = tab; const tabLogin = $('tab-login'), tabRegister = $('tab-register'), loginStep = $('auth-login-step'), registerStep = $('auth-register-step'); if (tab === 'login') { tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition'; tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition'; loginStep.classList.remove('hidden'); registerStep.classList.add('hidden'); } else { tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition'; tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition'; loginStep.classList.add('hidden'); registerStep.classList.remove('hidden'); } }
+function switchAuthTab(tab) {
+    currentAuthTab = tab;
+    const tabLogin = $('tab-login'), tabRegister = $('tab-register'), loginStep = $('auth-login-step'), registerStep = $('auth-register-step');
+    if (tab === 'login') {
+        tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition';
+        tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
+        loginStep.classList.remove('hidden'); registerStep.classList.add('hidden');
+    } else {
+        tabLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
+        tabRegister.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition';
+        loginStep.classList.add('hidden'); registerStep.classList.remove('hidden');
+    }
+}
 function openAuthModal() { $('modal-auth').classList.remove('hidden'); switchAuthTab('login'); $('login-form').reset(); $('login-error').classList.add('hidden'); $('auth-form').reset(); $('auth-error').classList.add('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden'); }
 function generateFakeEmail(username) { return `${username.toLowerCase().replace(/[^a-z0-9_-]/g, '')}@8master.game`; }
-async function handleLoginSubmit(e) { e.preventDefault(); if (!supabaseClient) return alert("Supabase manquant."); const username = $('login-username').value.trim(), password = $('login-password').value; const errorEl = $('login-error'), btn = $('btn-login-submit'); errorEl.classList.add('hidden'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...'; try { const { error } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password }); if (error) throw new Error("Pseudo ou mot de passe incorrect."); $('modal-auth').classList.add('hidden'); checkAuth(); } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); } finally { btn.disabled = false; btn.innerHTML = 'Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>'; } }
-function validateAuthForm() { const u = $('auth-username').value.trim(), w = $('auth-whatsapp').value.trim(), p = $('auth-password').value, c = $('auth-password-confirm').value; const btn = $('btn-auth-next'), confirmInput = $('auth-password-confirm'), phoneInput = $('auth-whatsapp'); if (c.length > 0) { if (p === c) { confirmInput.classList.remove('border-red-500'); confirmInput.classList.add('border-emerald-500'); } else { confirmInput.classList.remove('border-emerald-500'); confirmInput.classList.add('border-red-500'); } } else { confirmInput.classList.remove('border-emerald-500', 'border-red-500'); } if (w.length > currentPhoneLength) phoneInput.value = w.slice(0, currentPhoneLength); if (w.length === currentPhoneLength) { phoneInput.classList.remove('border-slate-800'); phoneInput.classList.add('border-emerald-500', 'text-emerald-400'); } else { phoneInput.classList.remove('border-emerald-500', 'text-emerald-400'); phoneInput.classList.add('border-slate-800'); } const isValid = u.length >= 3 && w.length === currentPhoneLength && p.length >= 6 && p === c; if (isValid) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); } else { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); } }
-function handleAuthStep1() { if ($('btn-auth-next').disabled) return; const username = $('auth-username').value.trim(), countryCode = $('auth-country').value.split('|')[0], localWhatsapp = $('auth-whatsapp').value.trim(); state.tempUserData = { username, whatsapp: countryCode + localWhatsapp, password: $('auth-password').value }; $('recap-username').textContent = username; $('recap-whatsapp').textContent = countryCode + localWhatsapp; $('auth-step-1').classList.add('hidden'); $('auth-step-2').classList.remove('hidden'); }
-async function handleAuthSubmit() { if (!supabaseClient) return alert("Supabase manquant."); const btn = $('btn-auth-submit'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...'; const { username, whatsapp, password } = state.tempUserData; try { const { error } = await supabaseClient.auth.signUp({ email: generateFakeEmail(username), password, options: { data: { username, whatsapp } } }); if (error) throw error; const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password }); if (loginError) throw loginError; alert("Inscription réussie !"); $('modal-auth').classList.add('hidden'); checkAuth(); } catch (err) { $('auth-error').textContent = err.message === 'User already registered' ? "Ce pseudo est déjà pris." : err.message; $('auth-error').classList.remove('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden'); } finally { btn.disabled = false; btn.innerHTML = 'Confirmer <i class="fa-solid fa-check"></i>'; } }
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    if (!supabaseClient) return alert('Supabase manquant.');
+    const username = $('login-username').value.trim(), password = $('login-password').value;
+    const errorEl = $('login-error'), btn = $('btn-login-submit');
+    errorEl.classList.add('hidden'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
+        if (error) throw new Error('Pseudo ou mot de passe incorrect.');
+        $('modal-auth').classList.add('hidden');
+        await checkAuth();
+        await restoreViewAfterAuth();
+    } catch (err) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
+    finally { btn.disabled = false; btn.innerHTML = 'Se connecter <i class="fa-solid fa-right-to-bracket text-xs ml-1"></i>'; }
+}
+function validateAuthForm() {
+    const u = $('auth-username').value.trim(), w = $('auth-whatsapp').value.trim(), p = $('auth-password').value, c = $('auth-password-confirm').value;
+    const btn = $('btn-auth-next'), confirmInput = $('auth-password-confirm'), phoneInput = $('auth-whatsapp');
+    if (c.length > 0) { if (p === c) { confirmInput.classList.remove('border-red-500'); confirmInput.classList.add('border-emerald-500'); } else { confirmInput.classList.remove('border-emerald-500'); confirmInput.classList.add('border-red-500'); } }
+    else { confirmInput.classList.remove('border-emerald-500', 'border-red-500'); }
+    if (w.length > currentPhoneLength) phoneInput.value = w.slice(0, currentPhoneLength);
+    if (w.length === currentPhoneLength) { phoneInput.classList.remove('border-slate-800'); phoneInput.classList.add('border-emerald-500', 'text-emerald-400'); }
+    else { phoneInput.classList.remove('border-emerald-500', 'text-emerald-400'); phoneInput.classList.add('border-slate-800'); }
+    const isValid = u.length >= 3 && w.length === currentPhoneLength && p.length >= 6 && p === c;
+    if (isValid) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+    else { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+}
+function handleAuthStep1() {
+    if ($('btn-auth-next').disabled) return;
+    const username = $('auth-username').value.trim(), countryCode = $('auth-country').value.split('|')[0], localWhatsapp = $('auth-whatsapp').value.trim();
+    state.tempUserData = { username, whatsapp: countryCode + localWhatsapp, password: $('auth-password').value };
+    $('recap-username').textContent = username; $('recap-whatsapp').textContent = countryCode + localWhatsapp;
+    $('auth-step-1').classList.add('hidden'); $('auth-step-2').classList.remove('hidden');
+}
+async function handleAuthSubmit() {
+    if (!supabaseClient) return alert('Supabase manquant.');
+    const btn = $('btn-auth-submit'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+    const { username, whatsapp, password } = state.tempUserData;
+    try {
+        const { error } = await supabaseClient.auth.signUp({ email: generateFakeEmail(username), password, options: { data: { username, whatsapp } } });
+        if (error) throw error;
+        const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email: generateFakeEmail(username), password });
+        if (loginError) throw loginError;
+        alert('Inscription réussie !');
+        $('modal-auth').classList.add('hidden');
+        await checkAuth();
+        await restoreViewAfterAuth();
+    } catch (err) {
+        $('auth-error').textContent = err.message === 'User already registered' ? 'Ce pseudo est déjà pris.' : err.message;
+        $('auth-error').classList.remove('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden');
+    } finally { btn.disabled = false; btn.innerHTML = 'Confirmer <i class="fa-solid fa-check"></i>'; }
+}
 async function checkAuth() {
     if (!supabaseClient) return;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             const { data: profile } = await supabaseClient.from('profiles').select('is_banned').eq('id', session.user.id).single();
-            if (profile && profile.is_banned) { await supabaseClient.auth.signOut(); alert("Compte banni."); window.location.reload(); return; }
+            if (profile && profile.is_banned) { await supabaseClient.auth.signOut(); alert('Compte banni.'); window.location.reload(); return; }
             state.user = session.user;
             $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
             $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
             const pseudo = session.user.user_metadata.username || 'Joueur';
-            $('player-name-input').value = pseudo;
+            if ($('player-name-input')) $('player-name-input').value = pseudo;
             $('pseudo-field-wrapper').classList.add('hidden');
             $('pseudo-connected-banner').classList.remove('hidden');
             $('pseudo-connected-name').textContent = pseudo;
@@ -408,4 +532,705 @@ async function checkAuth() {
         }
     } catch (err) { state.user = null; }
 }
-async function showProfile() { if (!state.user) return; $('modal-profile').classList.remove('hidden'); $('profile-username').textContent = state.user.user_metadata.username || 'Joueur'; $('profile-elo').textContent = 'Chargement...'; try { const { data } = await supabaseClient.from('profiles').select('username_display, elo_global, games_played, games_won').eq('id', state.user.id).single(); if (data) { $('profile-username').textContent = data.username_display; $('profile-elo').textContent = `ELO : ${data.elo_global}`; $('profile-games').textContent = data.games_played; $('profile-wins').textContent = data.games_won; $('profile-winrate').textContent = `${data.games_played > 0 ? Math.round((data.games_won / data.games_
+async function showProfile() {
+    if (!state.user) return;
+    $('modal-profile').classList.remove('hidden');
+    $('profile-username').textContent = state.user.user_metadata.username || 'Joueur';
+    $('profile-elo').textContent = 'Chargement...';
+    try {
+        const { data } = await supabaseClient.from('profiles').select('username_display, elo_global, games_played, games_won').eq('id', state.user.id).single();
+        if (data) {
+            $('profile-username').textContent = data.username_display;
+            $('profile-elo').textContent = `ELO : ${data.elo_global}`;
+            $('profile-games').textContent = data.games_played;
+            $('profile-wins').textContent = data.games_won;
+            $('profile-winrate').textContent = `${data.games_played > 0 ? Math.round((data.games_won / data.games_played) * 100) : 0}%`;
+        }
+    } catch (err) { $('profile-elo').textContent = 'Erreur'; }
+}
+async function saveGameResult(winner) {
+    if (!state.user || currentMultiGameId) return;
+    const human = humanPlayer(); if (!human) return;
+    const humanWon = winner && winner.isHuman;
+    try {
+        await supabaseClient.rpc('process_game_result', {
+            p_human_id: state.user.id, p_human_score: game.scores[human.id],
+            p_is_winner: humanWon, p_player_count: game.players.length,
+            p_elo_change: humanWon ? 25 : -15
+        });
+    } catch (err) { console.error('saveGameResult:', err); }
+}
+
+/* ──────────────── UI ──────────────── */
+function updateUI() {
+    if (!game) return;
+    const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
+    if (top) {
+        discardContainer.innerHTML = renderCardHTML(top);
+        if (state.pendingDiscardAnimation) { discardContainer.firstElementChild.classList.add('card-drop-anim'); state.pendingDiscardAnimation = false; }
+    } else { discardContainer.innerHTML = ''; }
+    $('suit-indicator').classList.toggle('hidden', !game.activeSuit);
+    if (game.activeSuit) $('suit-indicator').innerHTML = `${game.activeSuit} imposé`;
+    $('lock-indicator').classList.toggle('hidden', !game.pendingAceConstraint);
+    $('deck-counter').textContent = game.deck.length;
+    const curP = game.players[game.currentPlayerIdx];
+    $('hud-current-turn').innerText = curP ? curP.name : '';
+    $('hud-round').innerText = game.roundNumber || 1;
+    $('hud-active-suit').innerText = game.activeSuit ? `${game.activeSuit} imposé` : 'Libre';
+    $('hud-dir-icon').className = game.direction === -1 ? 'dir-arrow spin-ccw fa-solid fa-arrow-rotate-left' : 'dir-arrow spin-cw fa-solid fa-arrow-rotate-right';
+    $('hud-dir-label').innerText = game.direction === -1 ? 'Anti-Horaire' : 'Horaire';
+    const oppContainer = $('opponents-container'); oppContainer.innerHTML = '';
+    game.players.filter(p => !p.isHuman).forEach(opp => {
+        const isTurn = curP && curP.id === opp.id && !opp.eliminated;
+        const box = document.createElement('div');
+        box.className = `bg-slate-950/70 border rounded-xl p-2 text-center flex flex-col items-center justify-between transition ${opp.eliminated ? 'border-red-800/50 opacity-40 grayscale' : isTurn ? 'border-amber-400 active-turn-glow' : 'border-slate-800'}`;
+        let miniCards = ''; const visible = Math.min(opp.hand.length, 8);
+        for (let i = 0; i < visible; i++) miniCards += `<span class="mini-card red" style="transform: rotate(${(i - visible / 2) * 3}deg)"></span>`;
+        if (opp.hand.length > 8) miniCards += `<span class="text-[9px] text-amber-400 ml-1">+${opp.hand.length - 8}</span>`;
+        box.innerHTML = `<div class="w-7 h-7 rounded-full ${isTurn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-400'} font-black flex items-center justify-center text-[10px] mb-1">${opp.eliminated ? '💀' : '👤'}</div><span class="text-[11px] font-bold text-slate-200 truncate w-full">${escapeHtml(opp.name)}</span><span class="text-[9px] font-bold text-amber-300 mt-0.5">${game.scores[opp.id]} pts</span><div class="mt-1 h-4 flex items-center justify-center">${miniCards}</div>`;
+        oppContainer.appendChild(box);
+    });
+    const human = humanPlayer();
+    if (human) {
+        $('human-player-name').innerText = human.name;
+        $('human-card-badge').innerText = `🎴 ${human.hand.length}`;
+        $('human-score-badge').innerText = `${game.scores[human.id]} pts`;
+        let potPts = 0; human.hand.forEach(c => potPts += Engine8Master.cardPoints(c));
+        $('human-potential-badge').innerText = `+${potPts}`;
+    }
+    const canDraw = state.isHumanTurn && !state.isAiThinking && !state.isAnimating && !game.roundEnded && !game.gameOver;
+    $('btn-voluntary-draw').disabled = !canDraw;
+    if (human) $('btn-voluntary-draw').classList.toggle('animate-pulse', canDraw && human.hand.every(c => !Engine8Master.isCardPlayable(game, c)));
+    const hand = $('human-hand'); hand.innerHTML = '';
+    if (human) {
+        human.hand.forEach((card, idx) => {
+            const playable = curP && curP.isHuman && !game.roundEnded && Engine8Master.isCardPlayable(game, card);
+            const wrapper = document.createElement('div'); wrapper.innerHTML = renderCardHTML(card, playable);
+            const cardEl = wrapper.firstElementChild; if (!playable) cardEl.classList.add('not-playable');
+            cardEl.onclick = () => { if (!state.isHumanTurn || state.isAiThinking || state.isAnimating || game.roundEnded || game.gameOver) return; if (!playable) { shakeElement(cardEl); AudioFX.play('lose'); return; } handleHumanPlay(idx); };
+            hand.appendChild(cardEl);
+        });
+    }
+    updateSpeedButton();
+    saveGameState();
+}
+
+async function processEvents(events) {
+    for (const ev of events) {
+        if (ev.type === 'DRAWN') AudioFX.play('draw');
+        else if (ev.type === 'SUIT_IMPOSED') { AudioFX.play('special'); showEffectBanner(`✨ Famille ${ev.suit} imposée`); }
+        else if (ev.type === 'DIRECTION_REVERSED') { AudioFX.play('special'); showEffectBanner('🔄 Sens inversé !'); }
+        else if (ev.type === 'PLAYER_SKIPPED') { AudioFX.play('special'); showEffectBanner(`🃏 ${getPlayerName(ev.playerId)} est sauté`); }
+        else if (ev.type === 'ATTACK_2') { AudioFX.play('special'); showEffectBanner(`⚔️ Attaque du 2 : ${ev.victims.map(v => `${getPlayerName(v.id)} +${v.count}`).join(', ')}`); }
+        else if (ev.type === 'ACE_LOCK_APPLIED') { AudioFX.play('special'); showEffectBanner(`🛡️ ${getPlayerName(ev.victimId)} est verrouillé`); }
+        else if (ev.type === 'ACE_LOCK_RELEASED') { AudioFX.play('special'); showEffectBanner('🛡️ Contrainte levée'); }
+        else if (ev.type === 'LAST_CARD_FORBIDDEN') { AudioFX.play('lose'); showEffectBanner(`⚠️ ${getPlayerName(ev.playerId)} ne peut pas finir avec un ${ev.card.value}`); }
+        else if (ev.type === 'PLAYER_ELIMINATED') { AudioFX.play('lose'); showEffectBanner(`☠️ ${getPlayerName(ev.playerId)} éliminé`); }
+    }
+}
+
+function scheduleNextTurn() {
+    if (!game || game.roundEnded || game.gameOver) return;
+    const curP = game.players[game.currentPlayerIdx]; if (!curP) return;
+    if (curP.isHuman) {
+        state.isHumanTurn = true; state.isAiThinking = false;
+        $('action-banner').innerText = game.pendingAceConstraint ? '🛡️ Verrouillé — posez un As ou piochez.' : "C'est à vous !";
+        updateUI();
+    } else {
+        state.isHumanTurn = false; state.isAiThinking = true;
+        $('action-banner').innerText = `${curP.name} réfléchit...`;
+        updateUI();
+        setTimeout(() => executeAiTurn(curP), getSpeedLevel(state.botSpeed).ms);
+    }
+}
+
+/* ═══════════════════ MULTIJOUEUR ═══════════════════ */
+
+async function createPrivateRoom(cardsPerPlayer) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    const displayName = getDisplayName();
+    const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', {
+        p_display_name: displayName, p_cards_per_player: cardsPerPlayer
+    });
+    if (error) { alert('Erreur : ' + error.message); return; }
+    showPrivateRoomOverlay(code);
+}
+
+async function joinPrivateRoom(code) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    showSearchOverlay('Connexion à la salle...');
+    const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
+        p_code: code, p_display_name: getDisplayName()
+    });
+    hideSearchOverlay();
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await attachToGame(gameId, false);
+}
+
+function showSearchOverlay(text) {
+    let ov = $('multi-search-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'multi-search-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2></div>`;
+        document.body.appendChild(ov);
+    }
+    $('multi-search-text').textContent = text;
+    ov.classList.remove('hidden');
+}
+function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
+
+function showPrivateRoomOverlay(code) {
+    let ov = $('private-room-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'private-room-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><h2 class="text-xl font-black text-white mb-2">Salle créée</h2><p class="text-xs text-slate-400 mb-4">Partagez ce code</p><div class="bg-slate-950 border border-slate-700 rounded-2xl py-4 mb-4"><div id="private-room-code" class="text-3xl font-black text-amber-400 tracking-widest"></div></div><p class="text-[11px] text-slate-500 mb-4">Dès qu'un joueur rejoint, la partie démarre automatiquement.</p><button id="btn-copy-private-code" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs mb-2">Copier le code</button><button id="btn-cancel-private" class="w-full bg-red-950/60 text-red-300 py-2 rounded-xl text-xs">Annuler</button></div>`;
+        document.body.appendChild(ov);
+    }
+    $('private-room-code').textContent = code;
+    ov.classList.remove('hidden');
+    $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
+    $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
+    const watch = setInterval(async () => {
+        const { data: g, error } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
+        if (error || !g) { clearInterval(watch); return; }
+        if (g.player_count >= 2) { clearInterval(watch); ov.classList.add('hidden'); await attachToGame(g.id, true); }
+    }, 800);
+}
+
+/** Lit l'état via RPC SECURITY DEFINER (fiable même en RLS stricte). */
+async function fetchGameState(gameId) {
+    try {
+        const { data, error } = await supabaseClient.rpc('rpc_get_game_state', { p_game_id: gameId });
+        if (error) return null;
+        return data;
+    } catch (e) { return null; }
+}
+
+/** Lit la liste des joueurs via RPC SECURITY DEFINER. */
+async function fetchGamePlayers(gameId) {
+    try {
+        const { data, error } = await supabaseClient.rpc('rpc_get_game_players', { p_game_id: gameId });
+        if (error) return null;
+        return data;
+    } catch (e) { return null; }
+}
+
+async function attachToGame(gameId, isHost) {
+    currentMultiGameId = gameId;
+    multiIsHost = isHost;
+    multiLastProcessedEventId = 0;
+    saveView('multi', gameId);
+
+    ['setup-screen','modal-multi','modal-create-room'].forEach(id => $(id)?.classList.add('hidden'));
+    $('game-board').classList.remove('hidden');
+
+    const waitingOverlay = $('waiting-host-overlay');
+    const gameState = await fetchGameState(gameId);
+
+    if (!gameState) { alert('Partie introuvable.'); leaveMultiplayer(); return; }
+
+    // Si l'hôte et pas de state : on pousse le state initial
+    if (isHost && (!gameState.state_json || Object.keys(gameState.state_json).length === 0)) {
+        waitingOverlay.classList.add('hidden');
+        await pushInitialState(gameId);
+    } else if (gameState.state_json && Object.keys(gameState.state_json).length > 0) {
+        waitingOverlay.classList.add('hidden');
+        applyMultiState(gameState.state_json);
+    } else {
+        // Invité, en attente
+        waitingOverlay.classList.remove('hidden');
+        const cancelBtn = $('btn-waiting-cancel');
+        if (cancelBtn) {
+            cancelBtn.classList.add('hidden');
+            setTimeout(() => { if (waitingOverlay && !waitingOverlay.classList.contains('hidden')) cancelBtn.classList.remove('hidden'); }, 15000);
+            cancelBtn.onclick = () => leaveMultiplayer();
+        }
+    }
+
+    // Realtime
+    if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
+    multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
+            payload => {
+                if (payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
+                    waitingOverlay.classList.add('hidden');
+                    applyMultiState(payload.new.state_json);
+                }
+            })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                const st = await fetchGameState(gameId);
+                if (st && st.state_json && Object.keys(st.state_json).length > 0) {
+                    waitingOverlay.classList.add('hidden');
+                    applyMultiState(st.state_json);
+                }
+            }
+        });
+
+    if (isHost) {
+        if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
+        multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'game_id=eq.' + gameId },
+                payload => handleRemoteAction(payload.new))
+            .subscribe();
+    }
+
+    // Polling de secours (1s) avec arrêt dès chargement
+    if (multiPollInterval) clearInterval(multiPollInterval);
+    multiPollInterval = setInterval(async () => {
+        if (game && game.players && game.players.length > 0 && waitingOverlay.classList.contains('hidden')) return;
+        const st = await fetchGameState(gameId);
+        if (st && st.state_json && Object.keys(st.state_json).length > 0) {
+            waitingOverlay.classList.add('hidden');
+            applyMultiState(st.state_json);
+        }
+    }, 1000);
+}
+
+async function pushInitialState(gameId) {
+    // Attente courte pour laisser l'invité s'enregistrer côté BDD
+    await new Promise(r => setTimeout(r, 1200));
+
+    const players = await fetchGamePlayers(gameId);
+    if (!players || players.length < 2) {
+        // Retry jusqu'à ce que le 2e joueur soit visible
+        setTimeout(() => pushInitialState(gameId), 2000);
+        return;
+    }
+    const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
+    const gs = await fetchGameState(gameId);
+    const cardsPerPlayer = 6;
+
+    const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
+    Engine8Master.startRound(initial);
+    const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
+    await supabaseClient.rpc('rpc_push_state', {
+        p_game_id: gameId, p_new_state: initial, p_current_turn_user_id: firstTurnEngineId
+    });
+    applyMultiState(initial);
+}
+
+function applyMultiState(remoteState) {
+    if (!remoteState || !remoteState.players) return;
+    const wasMyTurn = state.isHumanTurn;
+    game = remoteState;
+    const myUserId = state.user?.id;
+    game.players.forEach(p => { p.isHuman = (p.id === myUserId); });
+    const currentEngineId = game.players[game.currentPlayerIdx]?.id;
+    const isMyTurnNow = (currentEngineId === myUserId) && !game.roundEnded && !game.gameOver;
+    state.isHumanTurn = isMyTurnNow;
+    state.isAiThinking = false;
+    state.isAnimating = false;
+    updateUI();
+    if (isMyTurnNow && !wasMyTurn) { $('action-banner').innerText = '🟢 À vous de jouer !'; AudioFX.play('click'); }
+    else if (!isMyTurnNow) { const cur = game.players[game.currentPlayerIdx]; $('action-banner').innerText = cur ? `⏳ Tour de ${cur.name}` : 'En attente...'; }
+}
+
+async function handleRemoteAction(eventRow) {
+    if (!eventRow || !eventRow.payload || !game) return;
+    if (eventRow.id <= multiLastProcessedEventId) return;
+    if (eventRow.actor_id === state.user?.id) return;
+    multiLastProcessedEventId = eventRow.id;
+    const action = eventRow.payload;
+    const playerId = eventRow.actor_id;
+    let result = null;
+    if (action.type === 'PLAY_CARD')        result = Engine8Master.playCard(game, playerId, action.cardIndex);
+    else if (action.type === 'DRAW_CARD')   result = Engine8Master.drawCard(game, playerId);
+    else if (action.type === 'CHOOSE_SUIT') result = Engine8Master.chooseSuit(game, playerId, action.suit);
+    if (!result || !result.valid) { console.warn('Action distante invalide:', action, result?.reason); return; }
+    const nextTurn = game.players[game.currentPlayerIdx];
+    await supabaseClient.rpc('rpc_push_state', {
+        p_game_id: currentMultiGameId, p_new_state: game,
+        p_current_turn_user_id: nextTurn ? nextTurn.id : null,
+        p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
+    });
+    applyMultiState(game);
+    processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+}
+
+async function sendMultiAction(action) {
+    await supabaseClient.rpc('rpc_send_action', { p_game_id: currentMultiGameId, p_action: action });
+}
+
+async function leaveMultiplayer() {
+    const gid = currentMultiGameId;
+    if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
+    if (multiEventsChannel) { supabaseClient.removeChannel(multiEventsChannel); multiEventsChannel = null; }
+    if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
+    if (gid) { ignoreGameId = gid; try { await supabaseClient.rpc('rpc_leave_game', { p_game_id: gid }); } catch (e) {} }
+    currentMultiGameId = null;
+    multiLastProcessedEventId = 0;
+    $('waiting-host-overlay').classList.add('hidden');
+    clearView();
+    returnToSetup();
+}
+
+/* ──────────────── Actions humaines (solo + multi) ──────────────── */
+async function handleHumanPlay(idx) {
+    if (!state.isHumanTurn || state.isAnimating) return;
+    const human = humanPlayer(), card = human.hand[idx];
+    if (!card || !Engine8Master.isCardPlayable(game, card)) return;
+    if (currentMultiGameId) {
+        if (multiIsHost) {
+            const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
+            const toRect = $('discard-pile-container').getBoundingClientRect();
+            state.isAnimating = true; state.isHumanTurn = false;
+            const result = Engine8Master.playCard(game, human.id, idx);
+            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            state.pendingDiscardAnimation = true; updateUI();
+            const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
+            if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
+            await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+            const next = game.players[game.currentPlayerIdx];
+            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
+            applyMultiState(game);
+            if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); }
+        } else {
+            await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
+            state.isHumanTurn = false; updateUI();
+            $('action-banner').innerText = 'Action envoyée, en attente...';
+        }
+        return;
+    }
+    const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
+    const toRect = $('discard-pile-container').getBoundingClientRect();
+    state.isAnimating = true; state.isHumanTurn = false;
+    const result = Engine8Master.playCard(game, human.id, idx);
+    if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+    state.pendingDiscardAnimation = true; updateUI();
+    const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
+    if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
+    await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+    state.isAnimating = false;
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
+    if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
+    scheduleNextTurn();
+}
+
+async function handleHumanDraw() {
+    if (!state.isHumanTurn || state.isAnimating) return;
+    const human = humanPlayer();
+    if (currentMultiGameId) {
+        if (multiIsHost) {
+            state.isAnimating = true; state.isHumanTurn = false;
+            const result = Engine8Master.drawCard(game, human.id);
+            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
+            const next = game.players[game.currentPlayerIdx];
+            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+            applyMultiState(game);
+        } else {
+            await sendMultiAction({ type: 'DRAW_CARD' });
+            state.isHumanTurn = false; updateUI();
+            $('action-banner').innerText = 'Pioche envoyée, en attente...';
+        }
+        return;
+    }
+    state.isAnimating = true; state.isHumanTurn = false;
+    const result = Engine8Master.drawCard(game, human.id);
+    if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+    updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
+    state.isAnimating = false;
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
+    scheduleNextTurn();
+}
+
+async function executeAiTurn(bot) {
+    if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
+    const playable = Engine8Master.getPlayableCards(game, bot.id);
+    if (playable.length === 0) {
+        const result = Engine8Master.drawCard(game, bot.id);
+        updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
+        if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
+        scheduleNextTurn(); return;
+    }
+    const sorted = [...playable].sort((a, b) => Engine8Master.cardPoints(a.card) - Engine8Master.cardPoints(b.card));
+    const chosenIdx = (state.aiDifficulty === 'easy') ? playable[Math.floor(Math.random() * playable.length)].idx : (sorted.find(x => x.card.value !== '8') || sorted[0]).idx;
+    const fromRect = botMiniRect(bot), toRect = $('discard-pile-container').getBoundingClientRect();
+    const result = Engine8Master.playCard(game, bot.id, chosenIdx);
+    if (!result.valid) { scheduleNextTurn(); return; }
+    state.pendingDiscardAnimation = true; updateUI();
+    const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
+    if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
+    await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+    if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
+    scheduleNextTurn();
+}
+
+function openCardCountModal(maxCards, callback) {
+    const range = $('card-count-modal-range');
+    range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
+    let chosen = Math.min(6, maxCards); range.value = chosen;
+    $('card-count-modal-display').innerText = chosen;
+    const newRange = range.cloneNode(true); range.parentNode.replaceChild(newRange, range);
+    newRange.addEventListener('input', (e) => { chosen = parseInt(e.target.value, 10); $('card-count-modal-display').innerText = chosen; });
+    const btn = $('btn-confirm-card-count'); const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => { $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
+    $('modal-card-count').classList.remove('hidden');
+}
+
+function prepareNextRound() {
+    if (!game || state.roundProcessing) return;
+    state.roundProcessing = true;
+    if (game.roundNumber === 0) { game.config.cardsPerPlayer = state.cardsPerPlayer; startRoundImmediate(); return; }
+    const active = game.players.filter(p => !p.eliminated);
+    const maxScore = Math.max(...active.map(p => game.scores[p.id]));
+    const candidates = active.filter(p => game.scores[p.id] === maxScore);
+    const dealer = candidates[Math.floor(Math.random() * candidates.length)];
+    const human = humanPlayer();
+    if (dealer.isHuman && !currentMultiGameId) {
+        openCardCountModal(game.config.maxCards, (chosen) => { game.config.cardsPerPlayer = chosen; startRoundImmediate(); });
+    } else {
+        const maxCards = game.config.maxCards;
+        game.config.cardsPerPlayer = CONFIG.MIN_CARDS_PER_DECK + Math.floor(Math.random() * (maxCards - CONFIG.MIN_CARDS_PER_DECK + 1));
+        startRoundImmediate();
+    }
+}
+
+function startRoundImmediate() {
+    state.roundProcessing = false;
+    const result = Engine8Master.startRound(game);
+    if (!result.valid) { if (game.gameOver) showGameOverModal(); return; }
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.pendingDiscardAnimation = true;
+    updateUI();
+    processEvents(result.events.filter(e => !['DEAL_HAND', 'STARTING_CARD', 'TURN_CHANGED'].includes(e.type)));
+    setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 400);
+}
+
+function showRoundEndModal(summary, winnerId) {
+    if (!summary) return;
+    game.lastRoundSummary = summary; game.lastWinnerId = winnerId; saveGameState();
+    let html = '';
+    if (summary.bonuses && summary.bonuses.length) summary.bonuses.forEach(b => { html += `<div class="flex justify-between text-amber-400 font-bold"><span>${escapeHtml(getPlayerName(b.playerId))} — ${b.type}</span><span>${b.amount} pts</span></div>`; });
+    else html += `<div class="flex justify-between text-emerald-400 font-bold"><span>🏆 ${escapeHtml(getPlayerName(winnerId))}</span><span>0 pt</span></div>`;
+    if (summary.penalties) summary.penalties.forEach(p => { html += `<div class="flex justify-between text-slate-300"><span>${escapeHtml(getPlayerName(p.playerId))}</span><span class="text-red-400">+${p.amount} pts</span></div>`; });
+    $('board-winner-title').innerText = `Victoire de ${escapeHtml(getPlayerName(winnerId))} !`;
+    $('board-summary-list').innerHTML = html;
+    $('board-winner-panel').classList.remove('hidden');
+    const human = humanPlayer();
+    if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
+    updateUI();
+}
+
+function showGameOverModal() {
+    const ranking = Engine8Master.buildRanking(game), winner = ranking.find(r => !r.eliminated) || ranking[0], humanWon = winner && winner.isHuman;
+    saveGameResult(winner);
+    localStorage.removeItem('8master-active-game');
+    $('game-over-icon').textContent = humanWon ? '🏆' : '💀';
+    $('game-over-title').textContent = humanWon ? 'Victoire !' : 'Partie terminée';
+    $('game-over-ranking').innerHTML = ranking.map((p, i) => `<div class="flex justify-between py-1.5 px-2 rounded-lg ${p.isHuman ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-slate-900/60'}"><span class="font-bold text-xs">${i + 1}. ${escapeHtml(p.name)} ${p.eliminated ? '☠️' : '👑'}</span><span class="font-black text-emerald-400 text-xs">${p.score} pts</span></div>`).join('');
+    $('modal-game-over').classList.remove('hidden');
+    if (humanWon) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
+}
+
+function launchConfetti() {
+    for (let i = 0; i < 40; i++) {
+        const c = document.createElement('div'); c.className = 'confetti';
+        c.style.cssText = `left:${Math.random() * 100}vw;background:${['#f59e0b','#dc2626','#10b981','#3b82f6','#a855f7','#ffffff'][Math.floor(Math.random() * 6)]};animation-delay:${Math.random() * 0.5}s;`;
+        document.body.appendChild(c); setTimeout(() => c.remove(), 3500);
+    }
+}
+
+function startGameSession() {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    const rawName = getDisplayName();
+    state.aiDifficulty = $('ai-difficulty-select').value;
+    const players = [{ id: 0, name: rawName, isHuman: true }];
+    for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
+    game = Engine8Master.createGame({ players, cardsPerPlayer: state.cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    saveView('solo');
+    $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
+    prepareNextRound();
+}
+
+function returnToSetup() {
+    game = null;
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    localStorage.removeItem('8master-active-game');
+    clearView();
+    $('setup-screen').classList.remove('hidden');
+    $('game-board').classList.add('hidden');
+}
+
+/* ──────────────── Polling global d'invitation ──────────────── */
+function startGlobalInvitePoll() {
+    if (globalInvitePollInterval) clearInterval(globalInvitePollInterval);
+    globalInvitePollInterval = setInterval(async () => {
+        if (!state.user) return;
+        if (currentMultiGameId) return;
+        if (game && !game.gameOver) return;
+        const priv = $('private-room-overlay');
+        if (priv && !priv.classList.contains('hidden')) return;
+        try {
+            const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
+            if (error || !data || !data.found) return;
+            if (data.game_id === ignoreGameId) return;
+            if (data.status === 'finished' || data.status === 'abandoned') return;
+            await attachToGame(data.game_id, data.is_host);
+        } catch (e) {}
+    }, 2000);
+}
+
+/* ──────────────── Restauration de la vue au démarrage ──────────────── */
+async function restoreViewAfterAuth() {
+    const view = localStorage.getItem('8master-view');
+    const gid = localStorage.getItem('8master-multi-game-id');
+
+    if (!state.user) {
+        // Pas connecté : on ne peut pas restaurer le multi
+        if (view === 'solo' && loadSoloGameState()) return;
+        showOnlyScreen('setup-screen');
+        return;
+    }
+
+    if (view === 'multi' && gid) {
+        const gameState = await fetchGameState(gid);
+        if (gameState && (gameState.status === 'lobby' || gameState.status === 'active')) {
+            await attachToGame(gid, gameState.is_host);
+            return;
+        }
+        clearView();
+    }
+
+    if (view === 'solo' && loadSoloGameState()) return;
+
+    // Fallback menu
+    showOnlyScreen('setup-screen');
+    saveView('setup');
+}
+
+/* ═══════════════════ DOM READY ═══════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+    AudioFX.init();
+
+    // Thème + config sauvegardée
+    const saved = Storage.load();
+    if (saved) {
+        state.botSpeed = saved.botSpeed || 'normal';
+        state.theme = saved.theme || 'dark';
+        state.aiCount = saved.aiCount || 2;
+        state.aiDifficulty = saved.difficulty || 'medium';
+        state.cardsPerPlayer = saved.cardsPerPlayer || 6;
+        applyTheme(state.theme); updateSpeedButton();
+        $('ai-difficulty-select').value = state.aiDifficulty;
+        $('cards-range-input').value = state.cardsPerPlayer;
+        $('cards-count-display').innerText = state.cardsPerPlayer;
+        document.querySelectorAll('.ai-count-btn').forEach(b => { if (parseInt(b.getAttribute('data-count')) === state.aiCount) b.className = 'ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs'; });
+    }
+
+    // Auth
+    $('btn-open-auth').onclick = openAuthModal;
+    $('btn-close-auth').onclick = () => $('modal-auth').classList.add('hidden');
+    $('tab-login').onclick = () => switchAuthTab('login');
+    $('tab-register').onclick = () => switchAuthTab('register');
+    $('login-form').onsubmit = handleLoginSubmit;
+    $('btn-show-profile').onclick = showProfile;
+    $('btn-close-profile').onclick = () => $('modal-profile').classList.add('hidden');
+    ['auth-username', 'auth-whatsapp', 'auth-password', 'auth-password-confirm'].forEach(id => $(id).addEventListener('input', validateAuthForm));
+    $('auth-country').addEventListener('change', (e) => {
+        const [, len] = e.target.value.split('|'); currentPhoneLength = parseInt(len);
+        $('auth-whatsapp').maxLength = currentPhoneLength; $('auth-whatsapp').value = '';
+        $('auth-whatsapp').classList.remove('border-emerald-500', 'text-emerald-400'); $('auth-whatsapp').classList.add('border-slate-800');
+        validateAuthForm();
+    });
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = $(btn.getAttribute('data-target')); const icon = btn.querySelector('i');
+            if (target.type === 'password') { target.type = 'text'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            else { target.type = 'password'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+        });
+    });
+    $('btn-auth-next').onclick = handleAuthStep1;
+    $('btn-auth-back').onclick = () => { $('auth-step-2').classList.add('hidden'); $('auth-step-1').classList.remove('hidden'); };
+    $('btn-auth-submit').onclick = handleAuthSubmit;
+    $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); await leaveMultiplayer(); await checkAuth(); showOnlyScreen('setup-screen'); };
+
+    // Config solo
+    $('cards-range-input').addEventListener('input', (e) => { state.cardsPerPlayer = parseInt(e.target.value, 10); $('cards-count-display').innerText = state.cardsPerPlayer; Storage.save(); });
+    document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = 'ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs'); e.target.className = 'ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs'; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
+    $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
+    $('player-name-input').addEventListener('change', Storage.save);
+
+    // Solo
+    $('btn-start-game-final').onclick = startGameSession;
+
+    // Multijoueur
+    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
+    $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
+    $('btn-create-room').onclick = () => {
+        $('modal-multi').classList.add('hidden');
+        createRoomCards = state.cardsPerPlayer || 6;
+        $('create-cards-range').value = createRoomCards;
+        $('create-cards-display').innerText = createRoomCards;
+        $('modal-create-room').classList.remove('hidden');
+    };
+    $('btn-close-create-room').onclick = () => $('modal-create-room').classList.add('hidden');
+    $('create-cards-range').addEventListener('input', (e) => { createRoomCards = parseInt(e.target.value, 10); $('create-cards-display').innerText = createRoomCards; });
+    $('btn-confirm-create-room').onclick = async () => { $('modal-create-room').classList.add('hidden'); await createPrivateRoom(createRoomCards); };
+    $('btn-join-room').onclick = async () => {
+        const code = $('join-code-input').value.trim().toUpperCase(); if (!code) return;
+        $('modal-multi').classList.add('hidden');
+        await joinPrivateRoom(code);
+    };
+
+    // Boutons plateau
+    $('btn-voluntary-draw').onclick = handleHumanDraw;
+    $('deck-pile').onclick = () => { if (state.isHumanTurn && !state.isAiThinking && !state.isAnimating) handleHumanDraw(); };
+    $('btn-sort-hand').onclick = () => { const h = humanPlayer(); if (h) { Engine8Master.sortHand(h); updateUI(); } };
+    $('btn-abandon').onclick = () => {
+        if (!confirm('Quitter la partie ?')) return;
+        if (currentMultiGameId) leaveMultiplayer();
+        else returnToSetup();
+    };
+
+    $('btn-bot-speed').onclick = () => { let idx = SPEED_LEVELS.findIndex(s => s.key === state.botSpeed); state.botSpeed = SPEED_LEVELS[(idx + 1) % SPEED_LEVELS.length].key; updateSpeedButton(); Storage.save(); };
+    $('btn-show-rules').onclick = () => $('modal-rules').classList.remove('hidden');
+    $('btn-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
+    $('btn-modal-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
+    $('btn-theme').onclick = () => { applyTheme(state.theme === 'dark' ? 'light' : 'dark'); Storage.save(); };
+
+    document.querySelectorAll('.suit-select-btn').forEach(b => b.onclick = async (e) => {
+        $('modal-suit-picker').classList.add('hidden'); state.needsSuitChoice = false;
+        const suit = e.target.getAttribute('data-suit');
+        if (currentMultiGameId) {
+            if (multiIsHost) {
+                const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
+                if (res.valid) {
+                    const next = game.players[game.currentPlayerIdx];
+                    await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+                    applyMultiState(game); processEvents(res.events);
+                }
+            } else { await sendMultiAction({ type: 'CHOOSE_SUIT', suit }); }
+            return;
+        }
+        const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
+        if (res.valid) { updateUI(); processEvents(res.events); } scheduleNextTurn();
+    });
+
+    $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); if (currentMultiGameId) applyMultiState(game); else prepareNextRound(); };
+    $('btn-new-game').onclick = () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); };
+
+    // Watchdog IA (solo uniquement)
+    setInterval(() => {
+        if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing || currentMultiGameId) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
+        const cur = game.players[game.currentPlayerIdx];
+        if (!cur || cur.isHuman) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
+        if (_watchdogLastIdx === game.currentPlayerIdx) { _watchdogTick++; if (_watchdogTick >= 2) { _watchdogTick = 0; executeAiTurn(cur); } }
+        else { _watchdogLastIdx = game.currentPlayerIdx; _watchdogTick = 0; }
+    }, 4000);
+
+    // Démarrage
+    (async () => {
+        await checkAuth();
+        await restoreViewAfterAuth();
+        startGlobalInvitePoll();
+    })();
+});
+</script>
+</body>
+</html>
