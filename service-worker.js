@@ -3,7 +3,7 @@
  *  Version : 5.3 (Mise à jour pour forcer le rafraîchissement du cache)
  * ========================================================================== */
 
-const CACHE_NAME = '8master-v2';
+const CACHE_NAME = '8master';
 const ASSETS = [
   './',
   './index.html',
