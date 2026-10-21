@@ -50,11 +50,9 @@ body { font-family: 'Outfit', sans-serif; background: radial-gradient(circle at 
 .effect-banner { padding: 7px 11px; border-radius: 10px; font-weight: 800; font-size: 12px; line-height: 1.3; background: rgba(15,23,42,0.97); color: var(--accent); border: 2px solid var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,0.7); animation: effect-slide-in-left 0.3s ease-out forwards; white-space: normal; word-wrap: break-word; text-align: left; }
 @keyframes effect-slide-in-left { 0% { transform: translateX(-25px) scale(0.85); opacity: 0; } 100% { transform: translateX(0) scale(1); opacity: 1; } }
 @media (max-width: 640px) { #effect-zone { left: 6px; max-width: 105px; gap: 4px; } .effect-banner { font-size: 10px; padding: 5px 8px; border-radius: 8px; border-width: 1.5px; line-height: 1.25; } }
-.card-back-red { border: 2px solid #ffffff; }
-.card-back-red { background: radial-gradient(circle, #dc2626 20%, #450a0a 90%), repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 0, transparent 8px); }
+.card-back-red { border: 2px solid #ffffff; background: radial-gradient(circle, #dc2626 20%, #450a0a 90%), repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 0, transparent 8px); }
 .card-back-red::after { content: "8"; font-weight: 900; font-size: 1.8rem; color: rgba(255,255,255,0.25); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.deck-stack-red::before, .deck-stack-red::after { content: ""; position: absolute; width: 100%; height: 100%; border: 2px solid #ffffff; border-radius: 8px; top: 0; left: 0; z-index: -1; }
-.deck-stack-red::before, .deck-stack-red::after { background: linear-gradient(135deg, #dc2626 25%, #450a0a 100%); }
+.deck-stack-red::before, .deck-stack-red::after { content: ""; position: absolute; width: 100%; height: 100%; border: 2px solid #ffffff; border-radius: 8px; top: 0; left: 0; z-index: -1; background: linear-gradient(135deg, #dc2626 25%, #450a0a 100%); }
 .deck-stack-red::before { transform: translate(2px,2px); opacity: 0.8; }
 .deck-stack-red::after { transform: translate(4px,4px); opacity: 0.5; }
 .mini-card { width: 14px; height: 22px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.6); display: inline-block; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
@@ -83,8 +81,6 @@ body.light-theme .black-suit { color: #0f172a; }
 .score-badge { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: var(--accent); padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
 #btn-bot-speed { transition: transform 0.15s, box-shadow 0.2s; }
 #btn-bot-speed:active { transform: scale(0.93); }
-#btn-bot-speed.pulse { animation: speed-pulse 0.5s ease-out; }
-@keyframes speed-pulse { 0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.7); } 100% { box-shadow: 0 0 0 12px rgba(245,158,11,0); } }
 @media (prefers-reduced-motion: reduce) { .active-turn-glow, .effect-banner, .modal-entry, .confetti, .shake, .dir-arrow { animation: none !important; } .playing-card { transition: none; } }
 </style>
 </head>
@@ -117,13 +113,29 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="setup-step-1">
         <h2 class="text-xl font-black text-amber-400 mb-0.5">Configuration</h2>
         <p class="text-xs text-slate-400 mb-5">Paramètres de la partie</p>
-        <div class="text-left mb-4">
+
+        <!-- Champ pseudo : visible seulement si NON connecté -->
+        <div id="pseudo-field-wrapper" class="text-left mb-4">
             <label for="player-name-input" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Pseudo en jeu</label>
             <div class="relative">
                 <i class="fa-solid fa-user-astronaut absolute left-3.5 top-3.5 text-slate-500"></i>
                 <input type="text" id="player-name-input" maxlength="20" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition">
             </div>
         </div>
+
+        <!-- Bandeau pseudo connecté -->
+        <div id="pseudo-connected-banner" class="hidden text-left mb-4">
+            <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Connecté en tant que</p>
+                    <p id="pseudo-connected-name" class="text-sm font-black text-white">Pseudo</p>
+                </div>
+            </div>
+        </div>
+
         <div class="space-y-4 text-left">
             <div>
                 <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Bots (1 à 5)</span>
@@ -162,33 +174,54 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODALE MULTIJOUEUR -->
+<!-- MODAL MULTIJOUEUR (simplifié : plus d'annuaire ni de match rapide) -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         <h2 class="text-2xl font-black text-amber-400 mb-1">Multijoueur</h2>
         <p class="text-xs text-slate-400 mb-6">Jouez avec vos amis</p>
+
         <div class="space-y-4">
-            <button id="btn-show-directory" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-address-book"></i> Annuaire des joueurs
+            <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i> Créer une salle privée
             </button>
-            <div class="flex items-center gap-2 my-2"><div class="h-px bg-slate-800 flex-1"></div><span class="text-xs text-slate-500 font-bold">OU</span><div class="h-px bg-slate-800 flex-1"></div></div>
-            <button id="btn-quick-match" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Match Rapide (1v1)</button>
-            <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Créer une salle privée</button>
+
+            <div class="flex items-center gap-2 my-2">
+                <div class="h-px bg-slate-800 flex-1"></div>
+                <span class="text-xs text-slate-500 font-bold">OU</span>
+                <div class="h-px bg-slate-800 flex-1"></div>
+            </div>
+
             <div>
                 <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
-                <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code</button>
+                <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODALE ANNUAIRE -->
-<div id="modal-directory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
-        <button id="btn-close-directory" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-        <h2 class="text-xl font-black text-white mb-4">Joueurs en ligne</h2>
-        <div id="directory-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+<!-- MODAL CRÉATION DE SALLE AVEC PARAMÈTRES -->
+<div id="modal-create-room" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
+        <button id="btn-close-create-room" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <h2 class="text-xl font-black text-amber-400 mb-1">Créer une salle</h2>
+        <p class="text-xs text-slate-400 mb-5">Paramètres de la partie</p>
+
+        <div class="space-y-4 text-left">
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Cartes par joueur</span>
+                    <span id="create-cards-display" class="text-sm font-black text-amber-400">6</span>
+                </div>
+                <input type="range" id="create-cards-range" min="3" max="8" value="6" class="w-full cursor-pointer">
+            </div>
+        </div>
+
+        <button id="btn-confirm-create-room" class="w-full mt-6 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i> Créer la salle
+        </button>
     </div>
 </div>
 
@@ -238,30 +271,26 @@ body.light-theme .black-suit { color: #0f172a; }
         </div>
     </div>
     <div id="effect-zone"></div>
+
+    <!-- Overlay "En attente de l'hôte" (visible tant que l'état n'est pas poussé) -->
+    <div id="waiting-host-overlay" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-30 hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-amber-500 mb-4"></div>
+        <h3 class="text-lg font-black text-amber-400 mb-2">En attente de l'hôte…</h3>
+        <p class="text-xs text-slate-400">La partie va démarrer automatiquement</p>
+    </div>
 </div>
 
 <!-- PROFIL -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-        <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">
-            <i class="fa-solid fa-user-astronaut"></i>
-        </div>
+        <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg"><i class="fa-solid fa-user-astronaut"></i></div>
         <h2 id="profile-username" class="text-2xl font-black text-white mb-1">Pseudo</h2>
         <p id="profile-elo" class="text-amber-400 font-bold text-sm mb-4">ELO : 1000</p>
         <div class="bg-slate-950/60 rounded-2xl border border-slate-800 p-4 space-y-3 mb-6 text-left">
-            <div class="flex justify-between border-b border-slate-800 pb-2">
-                <span class="text-xs text-slate-400">Parties jouées</span>
-                <span id="profile-games" class="text-sm font-bold text-white">0</span>
-            </div>
-            <div class="flex justify-between border-b border-slate-800 pb-2">
-                <span class="text-xs text-slate-400">Victoires</span>
-                <span id="profile-wins" class="text-sm font-bold text-emerald-400">0</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-xs text-slate-400">Taux de victoire</span>
-                <span id="profile-winrate" class="text-sm font-bold text-amber-400">0%</span>
-            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2"><span class="text-xs text-slate-400">Parties jouées</span><span id="profile-games" class="text-sm font-bold text-white">0</span></div>
+            <div class="flex justify-between border-b border-slate-800 pb-2"><span class="text-xs text-slate-400">Victoires</span><span id="profile-wins" class="text-sm font-bold text-emerald-400">0</span></div>
+            <div class="flex justify-between"><span class="text-xs text-slate-400">Taux de victoire</span><span id="profile-winrate" class="text-sm font-bold text-amber-400">0%</span></div>
         </div>
     </div>
 </div>
@@ -364,7 +393,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- RÈGLES -->
 <div id="modal-rules" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-md w-full text-left shadow-2xl max-h-[85vh] overflow-y-auto modal-entry">
         <div class="flex justify-between items-center mb-3"><h3 class="text-lg font-black text-amber-400"><i class="fa-solid fa-book-open"></i> Règles</h3><button id="btn-close-rules" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
@@ -378,7 +406,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- PICKER COULEUR -->
 <div id="modal-suit-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
         <h3 class="text-2xl font-black text-amber-400 mb-2">Pouvoir du 8 !</h3>
@@ -391,7 +418,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- NOMBRE DE CARTES -->
 <div id="modal-card-count" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
         <h3 class="text-2xl font-black text-amber-400 mb-2">Distribution</h3>
@@ -444,15 +470,17 @@ const state = {
 let game = null;
 let _watchdogLastIdx = -1; let _watchdogTick = 0;
 let currentPhoneLength = 10;
+let createRoomCards = 6;
 
-/* ───── MULTIJOUEUR v2 ───── */
+/* ───── MULTIJOUEUR ───── */
 let currentMultiGameId = null;
 let multiStateChannel = null;
 let multiEventsChannel = null;
 let multiPollInterval = null;
-let multiSearchPollInterval = null;
 let multiLastProcessedEventId = 0;
 let multiIsHost = false;
+let globalInvitePollInterval = null;
+let ignoreGameId = null; // pour éviter de re-basculer sur une partie qu'on vient de quitter
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[1]; }
@@ -460,6 +488,9 @@ function updateSpeedButton() {
     const level = getSpeedLevel(state.botSpeed);
     if ($('speed-icon')) $('speed-icon').textContent = level.icon;
     if ($('speed-label')) $('speed-label').textContent = level.label;
+}
+function getDisplayName() {
+    return state.user?.user_metadata?.username || $('player-name-input')?.value?.trim() || 'Invité';
 }
 function saveGameState() {
     if (game && !game.gameOver && !currentMultiGameId) { localStorage.setItem('8master-active-game', JSON.stringify(game)); }
@@ -551,7 +582,7 @@ function showEffectBanner(text) {
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
-/* AUTH */
+/* ───── AUTH ───── */
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -630,11 +661,18 @@ async function checkAuth() {
             state.user = session.user;
             $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
             $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
-            if (session.user.user_metadata.username) $('player-name-input').value = session.user.user_metadata.username;
+            // Pseudo auto : bandeau visible, input masqué
+            const pseudo = session.user.user_metadata.username || 'Joueur';
+            $('player-name-input').value = pseudo;
+            $('pseudo-field-wrapper').classList.add('hidden');
+            $('pseudo-connected-banner').classList.remove('hidden');
+            $('pseudo-connected-name').textContent = pseudo;
         } else {
             state.user = null;
             $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
             $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
+            $('pseudo-field-wrapper').classList.remove('hidden');
+            $('pseudo-connected-banner').classList.add('hidden');
         }
     } catch (err) { state.user = null; }
 }
@@ -667,7 +705,7 @@ async function saveGameResult(winner) {
     } catch (err) { console.error("saveGameResult:", err); }
 }
 
-/* UI */
+/* ───── UI ───── */
 function updateUI() {
     if (!game) return;
     const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
@@ -749,38 +787,30 @@ function scheduleNextTurn() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MULTIJOUEUR v2 — Appairage automatique, plateau direct
+   MULTIJOUEUR : création de salle + jonction par code
    ═══════════════════════════════════════════════════════════════════════════ */
 
-async function enterMultiplayer(mode, opts) {
-    if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; }
-    opts = opts || {};
-    const displayName = state.user.user_metadata?.username || 'Joueur';
+async function createPrivateRoom(cardsPerPlayer) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    const displayName = getDisplayName();
+    const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', {
+        p_display_name: displayName,
+        p_cards_per_player: cardsPerPlayer
+    });
+    if (error) { alert('Erreur : ' + error.message); return; }
+    showPrivateRoomOverlay(code);
+}
 
-    if (mode === 'quick') {
-        showSearchOverlay('Recherche d\'un adversaire...');
-        const { data, error } = await supabaseClient.rpc('rpc_enter_queue', { p_display_name: displayName, p_mode: 'quick' });
-        if (error) { hideSearchOverlay(); alert('Erreur : ' + error.message); return; }
-        if (data.matched) { hideSearchOverlay(); await attachToGame(data.game_id, false); }
-        else { startSearchPoll(); }
-        return;
-    }
-    if (mode === 'invite') {
-        showSearchOverlay('Envoi de l\'invitation...');
-        const { data, error } = await supabaseClient.rpc('rpc_invite_direct', { p_invitee_id: opts.inviteeId, p_display_name: displayName });
-        hideSearchOverlay();
-        if (error) { alert('Erreur : ' + error.message); return; }
-        await attachToGame(data.game_id, true);
-        return;
-    }
-    if (mode === 'private') {
-        showSearchOverlay('Connexion à la salle...');
-        const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', { p_code: opts.code, p_display_name: displayName });
-        hideSearchOverlay();
-        if (error) { alert('Erreur : ' + error.message); return; }
-        await attachToGame(gameId, false);
-        return;
-    }
+async function joinPrivateRoom(code) {
+    if (!state.user) { alert('Connectez-vous.'); return; }
+    const displayName = getDisplayName();
+    showSearchOverlay('Connexion à la salle...');
+    const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
+        p_code: code, p_display_name: displayName
+    });
+    hideSearchOverlay();
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await attachToGame(gameId, false);
 }
 
 function showSearchOverlay(text) {
@@ -789,46 +819,80 @@ function showSearchOverlay(text) {
         ov = document.createElement('div');
         ov.id = 'multi-search-overlay';
         ov.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4';
-        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2><p class="text-xs text-slate-400 mb-4">Ne quittez pas cette page</p><button id="btn-cancel-search" class="w-full bg-slate-800 hover:bg-slate-700 text-red-300 font-bold py-2.5 rounded-xl text-xs">Annuler</button></div>`;
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2></div>`;
         document.body.appendChild(ov);
-        $('btn-cancel-search').onclick = async () => { try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e){}; stopSearchPoll(); hideSearchOverlay(); };
     }
     $('multi-search-text').textContent = text;
     ov.classList.remove('hidden');
 }
 function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
-function startSearchPoll() {
-    stopSearchPoll();
-    multiSearchPollInterval = setInterval(async () => {
-        const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
-        if (error) return;
-        if (data && data.found) { stopSearchPoll(); hideSearchOverlay(); await attachToGame(data.game_id, data.is_host); }
-    }, 1000);
+
+function showPrivateRoomOverlay(code) {
+    let ov = $('private-room-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'private-room-overlay';
+        ov.className = 'fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4';
+        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><h2 class="text-xl font-black text-white mb-2">Salle créée</h2><p class="text-xs text-slate-400 mb-4">Partagez ce code</p><div class="bg-slate-950 border border-slate-700 rounded-2xl py-4 mb-4"><div id="private-room-code" class="text-3xl font-black text-amber-400 tracking-widest"></div></div><p class="text-[11px] text-slate-500 mb-4">Dès qu'un joueur rejoint, la partie démarre automatiquement.</p><button id="btn-copy-private-code" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs mb-2">Copier le code</button><button id="btn-cancel-private" class="w-full bg-red-950/60 text-red-300 py-2 rounded-xl text-xs">Annuler</button></div>`;
+        document.body.appendChild(ov);
+    }
+    $('private-room-code').textContent = code;
+    ov.classList.remove('hidden');
+    $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
+    $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
+
+    // Surveille si quelqu'un rejoint → démarrage auto
+    const watch = setInterval(async () => {
+        const { data: g, error } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
+        if (error || !g) { clearInterval(watch); return; }
+        if (g.player_count >= 2) {
+            clearInterval(watch);
+            ov.classList.add('hidden');
+            await attachToGame(g.id, true);
+        }
+    }, 800);
 }
-function stopSearchPoll() { if (multiSearchPollInterval) clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
 
 async function attachToGame(gameId, isHost) {
     currentMultiGameId = gameId;
     multiIsHost = isHost;
     multiLastProcessedEventId = 0;
-    ['setup-screen','modal-multi','modal-directory','modal-invite-received'].forEach(id => $(id)?.classList.add('hidden'));
+    ['setup-screen','modal-multi','modal-directory','modal-create-room'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
     $('game-board').classList.remove('hidden');
 
+    // Overlay d'attente tant que l'état n'est pas disponible
+    const waitingOverlay = $('waiting-host-overlay');
     const { data: gameRow, error } = await supabaseClient.from('games').select('state_json, host_id, status').eq('id', gameId).single();
-    if (error || !gameRow) { alert('Partie introuvable.'); return; }
+    if (error || !gameRow) { alert('Partie introuvable.'); leaveMultiplayer(); return; }
 
-    if (isHost && (!gameRow.state_json || Object.keys(gameRow.state_json).length === 0)) {
+    const hasState = gameRow.state_json && Object.keys(gameRow.state_json).length > 0;
+
+    if (isHost && !hasState) {
+        // L'hôte initialise
+        waitingOverlay.classList.add('hidden');
         await pushInitialState(gameId);
-    } else if (gameRow.state_json && Object.keys(gameRow.state_json).length > 0) {
+    } else if (hasState) {
+        // L'invité reçoit l'état déjà prêt
+        waitingOverlay.classList.add('hidden');
         applyMultiState(gameRow.state_json);
+    } else {
+        // L'invité attend l'état
+        waitingOverlay.classList.remove('hidden');
     }
 
+    // Abonnement Realtime pour les UPDATE de games
     if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
     multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
-            payload => { if (payload.new.state_json) applyMultiState(payload.new.state_json); })
+            payload => {
+                if (payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
+                    waitingOverlay.classList.add('hidden');
+                    applyMultiState(payload.new.state_json);
+                }
+            })
         .subscribe();
 
+    // L'hôte écoute les actions
     if (isHost) {
         if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
         multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
@@ -837,18 +901,29 @@ async function attachToGame(gameId, isHost) {
             .subscribe();
     }
 
+    // Polling de secours (2s) pour rattraper les événements manqués
     if (multiPollInterval) clearInterval(multiPollInterval);
     multiPollInterval = setInterval(async () => {
         const { data } = await supabaseClient.from('games').select('state_json').eq('id', gameId).single();
-        if (data && data.state_json) applyMultiState(data.state_json);
+        if (data && data.state_json && Object.keys(data.state_json).length > 0) {
+            waitingOverlay.classList.add('hidden');
+            applyMultiState(data.state_json);
+        }
     }, 2000);
 }
 
 async function pushInitialState(gameId) {
     const { data: players, error } = await supabaseClient.from('game_players').select('user_id, display_name, seat').eq('game_id', gameId).order('seat');
-    if (error || !players || players.length < 2) { alert('Joueurs insuffisants.'); return; }
+    if (error || !players || players.length < 2) {
+        $('waiting-host-overlay').classList.remove('hidden');
+        return;
+    }
     const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
-    const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer: 6, cardsPerDeck: 8, numDecks: 1 });
+    // Récupérer les paramètres (cartes par joueur) depuis games
+    const { data: g } = await supabaseClient.from('games').select('cards_per_player').eq('id', gameId).single();
+    const cardsPerPlayer = g?.cards_per_player || 6;
+
+    const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
     Engine8Master.startRound(initial);
     const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
     await supabaseClient.rpc('rpc_push_state', { p_game_id: gameId, p_new_state: initial, p_current_turn_user_id: firstTurnEngineId });
@@ -898,60 +973,21 @@ async function sendMultiAction(action) {
 }
 
 async function leaveMultiplayer() {
+    const gid = currentMultiGameId;
     if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
     if (multiEventsChannel) { supabaseClient.removeChannel(multiEventsChannel); multiEventsChannel = null; }
     if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
-    if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
-    try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e) {}
+    if (gid) {
+        ignoreGameId = gid;
+        try { await supabaseClient.rpc('rpc_leave_game', { p_game_id: gid }); } catch(e) {}
+    }
     currentMultiGameId = null;
     multiLastProcessedEventId = 0;
+    $('waiting-host-overlay').classList.add('hidden');
     returnToSetup();
 }
 
-/* ANNULAIRE */
-async function openDirectory() {
-    if (!state.user) { alert('Connectez-vous.'); return; }
-    $('modal-directory').classList.remove('hidden');
-    const list = $('directory-list');
-    list.innerHTML = '<p class="text-xs text-slate-400 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</p>';
-    const { data, error } = await supabaseClient.rpc('rpc_list_available_players');
-    list.innerHTML = '';
-    if (error) { list.innerHTML = `<p class="text-xs text-red-400 text-center">Erreur : ${escapeHtml(error.message)}</p>`; return; }
-    if (!data || data.length === 0) { list.innerHTML = '<p class="text-xs text-slate-400 italic text-center">Aucun joueur disponible.</p>'; return; }
-    data.forEach(p => {
-        const color = p.status === 'available' ? 'text-emerald-400' : p.status === 'solo' ? 'text-blue-400' : 'text-red-400';
-        const label = p.status === 'available' ? 'Disponible' : p.status === 'solo' ? 'En Solo' : (p.status === 'waiting_multi' ? 'Cherche une partie' : 'En partie');
-        const canInvite = p.status === 'available' || p.status === 'waiting_multi';
-        const safeName = escapeHtml(p.username).replace(/'/g, "\\'");
-        list.innerHTML += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg mb-2"><div class="text-left"><div class="text-sm font-bold text-white">${escapeHtml(p.username)}</div><div class="text-[10px] ${color} font-bold">${label}</div></div><button onclick="window._invitePlayer('${p.user_id}','${safeName}')" ${!canInvite ? 'disabled' : ''} class="bg-amber-500 disabled:opacity-30 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg">Inviter</button></div>`;
-    });
-}
-window._invitePlayer = async (userId, name) => {
-    $('modal-directory').classList.add('hidden');
-    await enterMultiplayer('invite', { inviteeId: userId, inviteeName: name });
-};
-
-/* SALLE PRIVÉE (overlay d'attente) */
-function showPrivateRoomOverlay(code) {
-    let ov = $('private-room-overlay');
-    if (!ov) {
-        ov = document.createElement('div');
-        ov.id = 'private-room-overlay';
-        ov.className = 'fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4';
-        ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><h2 class="text-xl font-black text-white mb-2">Salle privée créée</h2><p class="text-xs text-slate-400 mb-4">Partagez ce code</p><div class="bg-slate-950 border border-slate-700 rounded-2xl py-4 mb-4"><div id="private-room-code" class="text-3xl font-black text-amber-400 tracking-widest"></div></div><p class="text-[11px] text-slate-500 mb-4">Dès qu'un joueur rejoint, la partie démarre automatiquement.</p><button id="btn-copy-private-code" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs mb-2">Copier le code</button><button id="btn-cancel-private" class="w-full bg-red-950/60 text-red-300 py-2 rounded-xl text-xs">Annuler</button></div>`;
-        document.body.appendChild(ov);
-    }
-    $('private-room-code').textContent = code;
-    ov.classList.remove('hidden');
-    $('btn-copy-private-code').onclick = () => { navigator.clipboard.writeText(code); $('btn-copy-private-code').textContent = 'Copié !'; setTimeout(() => { $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500); };
-    $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
-    const watch = setInterval(async () => {
-        const { data: g } = await supabaseClient.from('games').select('id, player_count').eq('join_code', code).single();
-        if (g && g.player_count >= 2) { clearInterval(watch); ov.classList.add('hidden'); await attachToGame(g.id, true); }
-    }, 1000);
-}
-
-/* ACTIONS HUMAINES (bifurcation solo / multi) */
+/* ───── ACTIONS HUMAINES (solo / multi) ───── */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
@@ -1111,7 +1147,7 @@ function launchConfetti() {
 }
 function startGameSession() {
     if (!state.user) { alert("Connectez-vous."); return; }
-    const rawName = $('player-name-input').value.trim() || 'Invité';
+    const rawName = getDisplayName();
     state.aiDifficulty = $('ai-difficulty-select').value;
     const players = [{ id: 0, name: rawName, isHuman: true }];
     for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
@@ -1124,12 +1160,34 @@ function returnToSetup() {
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     localStorage.removeItem('8master-active-game');
-    ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','modal-directory','modal-invite-received','private-room-overlay','multi-search-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+    ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','modal-create-room','private-room-overlay','multi-search-overlay','waiting-host-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
     $('setup-screen').classList.remove('hidden');
     $('game-board').classList.add('hidden');
 }
 
-/* ÉVÉNEMENTS DOM */
+/* ───── Polling global d'invitation (détecte si on est ajouté à une partie) ───── */
+function startGlobalInvitePoll() {
+    if (globalInvitePollInterval) clearInterval(globalInvitePollInterval);
+    globalInvitePollInterval = setInterval(async () => {
+        if (!state.user) return;
+        if (currentMultiGameId) return;                    // déjà en multi
+        if (game && !game.gameOver) return;                // en solo actif
+        // Ne pas gêner si l'utilisateur est en train de créer une salle
+        const privOverlayVisible = $('private-room-overlay') && !$('private-room-overlay').classList.contains('hidden');
+        if (privOverlayVisible) return;
+
+        try {
+            const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
+            if (error || !data || !data.found) return;
+            if (data.game_id === currentMultiGameId) return;
+            if (data.game_id === ignoreGameId) return;
+            // On a été ajouté à une partie active → on bascule dessus
+            await attachToGame(data.game_id, data.is_host);
+        } catch (e) {}
+    }, 2000);
+}
+
+/* ───── ÉVÉNEMENTS DOM ───── */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
     const saved = Storage.load();
@@ -1173,27 +1231,28 @@ document.addEventListener('DOMContentLoaded', () => {
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
     $('player-name-input').addEventListener('change', Storage.save);
     $('btn-start-game-final').onclick = startGameSession;
-    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
+    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
     $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
-    $('btn-show-directory').onclick = openDirectory;
-    $('btn-close-directory').onclick = () => $('modal-directory').classList.add('hidden');
-    $('btn-quick-match').onclick = async () => { $('modal-multi').classList.add('hidden'); await enterMultiplayer('quick'); };
-    $('btn-create-room').onclick = async () => {
-        if (!state.user) { alert('Connectez-vous.'); return; }
-        const displayName = state.user.user_metadata?.username || 'Hôte';
-        const btn = $('btn-create-room'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-        try {
-            const { data: code, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', { p_display_name: displayName });
-            if (error) throw error;
-            $('modal-multi').classList.add('hidden');
-            showPrivateRoomOverlay(code);
-        } catch (err) { alert('Erreur : ' + err.message); }
-        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Créer une salle privée'; }
+    $('btn-create-room').onclick = () => {
+        $('modal-multi').classList.add('hidden');
+        createRoomCards = state.cardsPerPlayer || 6;
+        $('create-cards-range').value = createRoomCards;
+        $('create-cards-display').innerText = createRoomCards;
+        $('modal-create-room').classList.remove('hidden');
+    };
+    $('btn-close-create-room').onclick = () => $('modal-create-room').classList.add('hidden');
+    $('create-cards-range').addEventListener('input', (e) => {
+        createRoomCards = parseInt(e.target.value, 10);
+        $('create-cards-display').innerText = createRoomCards;
+    });
+    $('btn-confirm-create-room').onclick = async () => {
+        $('modal-create-room').classList.add('hidden');
+        await createPrivateRoom(createRoomCards);
     };
     $('btn-join-room').onclick = async () => {
         const code = $('join-code-input').value.trim().toUpperCase(); if (!code) return;
         $('modal-multi').classList.add('hidden');
-        await enterMultiplayer('private', { code });
+        await joinPrivateRoom(code);
     };
     $('btn-voluntary-draw').onclick = handleHumanDraw;
     $('deck-pile').onclick = () => { if (state.isHumanTurn && !state.isAiThinking && !state.isAnimating) handleHumanDraw(); };
@@ -1232,6 +1291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
     checkAuth().finally(() => {
         if (!loadGameState()) { $('setup-screen').classList.remove('hidden'); $('game-board').classList.add('hidden'); }
+        startGlobalInvitePoll();
     });
 });
 </script>
