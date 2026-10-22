@@ -74,9 +74,16 @@ body.light-theme .black-suit { color: #0f172a; }
 #btn-bot-speed { transition: transform 0.15s, box-shadow 0.2s; }
 #btn-bot-speed:active { transform: scale(0.93); }
 @media (prefers-reduced-motion: reduce) { .active-turn-glow, .effect-banner, .modal-entry, .confetti, .shake, .dir-arrow { animation: none !important; } .playing-card { transition: none; } }
+/* DEBUG PANEL */
+#debug-panel { position: fixed; bottom: 0; left: 0; right: 0; max-height: 30vh; background: rgba(0,0,0,0.92); color: #0f0; font-family: monospace; font-size: 10px; padding: 6px 8px; overflow-y: auto; z-index: 9998; border-top: 2px solid #0f0; display: none; }
+#debug-panel.open { display: block; }
+#debug-toggle { position: fixed; bottom: 8px; right: 8px; z-index: 9999; background: #0f0; color: #000; border: none; padding: 4px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; cursor: pointer; }
 </style>
 </head>
 <body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
+
+<button id="debug-toggle" onclick="document.getElementById('debug-panel').classList.toggle('open')">DEBUG</button>
+<div id="debug-panel"></div>
 
 <header class="w-full max-w-2xl flex justify-between items-center py-2 px-3 sm:px-4 glass-panel rounded-2xl mb-2">
     <div class="flex items-center gap-2">
@@ -92,7 +99,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </header>
 
-<!-- ÉCRAN MENU -->
 <main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-5 sm:p-6 my-auto text-center hidden">
     <div id="setup-step-1">
         <h2 class="text-xl font-black text-amber-400 mb-0.5">Configuration</h2>
@@ -134,7 +140,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODAL MULTI -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -151,7 +156,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- MODAL CREATE ROOM -->
 <div id="modal-create-room" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-create-room" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -167,41 +171,28 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- ÉCRAN LOBBY (salle d'attente) -->
 <div id="waiting-room" class="fixed inset-0 bg-slate-950 z-[90] flex items-center justify-center p-4 hidden">
     <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative shadow-2xl">
         <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg"><i class="fa-solid fa-users"></i></div>
         <h2 class="text-2xl font-black text-white mb-1">Salle d'attente</h2>
         <p class="text-xs text-slate-400 mb-5" id="lobby-subtitle">Partagez le code pour inviter des joueurs</p>
-
         <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 mb-5">
             <p class="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">Code de la salle</p>
             <div class="flex items-center justify-center gap-3">
                 <span id="lobby-code" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
-                <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition" title="Copier"><i class="fa-solid fa-copy"></i></button>
+                <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg transition"><i class="fa-solid fa-copy"></i></button>
             </div>
         </div>
-
         <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-5 text-left">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-xs font-bold text-slate-400 uppercase">Joueurs connectés</h3>
-                <span id="lobby-player-count" class="text-xs font-black text-amber-400">1</span>
-            </div>
+            <div class="flex items-center justify-between mb-3"><h3 class="text-xs font-bold text-slate-400 uppercase">Joueurs connectés</h3><span id="lobby-player-count" class="text-xs font-black text-amber-400">1</span></div>
             <div id="lobby-players-list" class="space-y-2"></div>
         </div>
-
-        <button id="btn-host-start" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 mb-2 opacity-50 cursor-not-allowed" disabled>
-            <i class="fa-solid fa-play"></i> Lancer la partie
-        </button>
+        <button id="btn-host-start" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 mb-2 opacity-50 cursor-not-allowed" disabled><i class="fa-solid fa-play"></i> Lancer la partie</button>
         <p id="lobby-hint" class="text-[10px] text-slate-500 mb-3">Il faut au moins 2 joueurs pour lancer</p>
-
-        <button id="btn-leave-lobby" class="w-full bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl transition text-xs">
-            <i class="fa-solid fa-right-from-bracket"></i> Quitter la salle
-        </button>
+        <button id="btn-leave-lobby" class="w-full bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl transition text-xs"><i class="fa-solid fa-right-from-bracket"></i> Quitter la salle</button>
     </div>
 </div>
 
-<!-- PLATEAU -->
 <div id="game-board" class="w-full max-w-4xl felt-table p-3 sm:p-5 flex flex-col justify-between min-h-[580px] relative hidden my-auto">
     <div class="flex flex-wrap justify-between items-center bg-slate-950/70 backdrop-blur rounded-2xl p-2.5 border border-slate-800/80 mb-3 gap-2 text-xs">
         <div class="flex items-center gap-1.5"><span class="text-slate-400">Tour :</span><span id="hud-current-turn" class="font-black text-amber-400">Vous</span></div>
@@ -231,7 +222,6 @@ body.light-theme .black-suit { color: #0f172a; }
     <div id="effect-zone"></div>
 </div>
 
-<!-- PROFIL -->
 <div id="modal-profile" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -246,7 +236,6 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- AUTH -->
 <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -344,6 +333,17 @@ if (!SUPABASE_ANON_KEY.includes('COLLE_TA_CLE')) { supabaseClient = supabase.cre
 <script>
 'use strict';
 
+// === DEBUG ===
+function dbg(msg) {
+    const panel = document.getElementById('debug-panel');
+    if (!panel) return;
+    const time = new Date().toLocaleTimeString('fr-FR');
+    const line = `[${time}] ${msg}\n`;
+    panel.textContent = line + panel.textContent;
+    console.log(msg);
+}
+window.dbg = dbg;
+
 const CONFIG = Engine8Master.CONFIG;
 const SPEED_LEVELS = [ { key: 'slow', icon: '🐢', label: '3s', ms: 3000 }, { key: 'normal', icon: '⏱️', label: '2s', ms: 2000 }, { key: 'fast', icon: '🐇', label: '1.2s', ms: 1200 }, { key: 'turbo', icon: '⚡', label: '0.6s', ms: 600 } ];
 
@@ -368,7 +368,6 @@ let multiIsHost = false;
 let globalInvitePollInterval = null;
 let ignoreGameId = null;
 
-// Lobby
 let lobbyChannel = null;
 let lobbyPollInterval = null;
 let currentLobbyCode = null;
@@ -381,7 +380,6 @@ function escapeHtml(str) { return String(str).replaceAll('&','&amp;').replaceAll
 function getPlayerName(id) { if (!game) return '?'; const p = game.players.find(p => p.id === id); return p ? p.name : `Joueur ${id}`; }
 function humanPlayer() { return game ? game.players.find(p => p.isHuman) : null; }
 
-/* ─────── Vues et persistance ─────── */
 function showOnlyScreen(screenId) {
     ['setup-screen', 'game-board', 'waiting-room'].forEach(id => $(id)?.classList.add('hidden'));
     ['modal-multi','modal-create-room','modal-profile','modal-auth','modal-rules','modal-suit-picker','modal-card-count','modal-game-over','board-winner-panel'].forEach(id => $(id)?.classList.add('hidden'));
@@ -415,7 +413,6 @@ function loadSoloGameState() {
     return false;
 }
 
-/* ─────── Audio ─────── */
 const AudioFX = {
     ctx: null,
     init() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } },
@@ -444,7 +441,6 @@ const Storage = {
 };
 function applyTheme(theme) { state.theme = theme; if (theme === 'light') { document.body.classList.add('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-sun'; } else { document.body.classList.remove('light-theme'); if ($('theme-icon')) $('theme-icon').className = 'fa-solid fa-moon'; } }
 
-/* ─────── Rendu cartes ─────── */
 function renderCardHTML(card, isPlayable = false) {
     const suitClass = card.isRed ? 'red-suit' : 'black-suit', playableClass = isPlayable ? 'playable' : '';
     return `<div class="playing-card ${playableClass} ${suitClass} flex flex-col justify-between p-1 bg-white select-none"><div class="card-corner text-left font-black text-[10px] leading-none">${card.value}<br><span>${card.suit}</span></div><div class="card-center text-center font-black text-xl my-auto">${card.suit}</div><div class="card-corner text-left font-black text-[10px] leading-none transform rotate-180">${card.value}<br><span>${card.suit}</span></div></div>`;
@@ -475,7 +471,6 @@ function showEffectBanner(text) {
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p => !p.isHuman).findIndex(p => p.id === bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
-/* ─────── Auth ─────── */
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -596,7 +591,6 @@ async function saveGameResult(winner) {
     } catch (err) { console.error('saveGameResult:', err); }
 }
 
-/* ─────── UI ─────── */
 function updateUI() {
     if (!game) return;
     const top = Engine8Master.topDiscard(game), discardContainer = $('discard-pile-container');
@@ -689,6 +683,7 @@ async function enterLobby(gameId, isHost) {
         currentMultiGameId = gameId;
         multiIsHost = isHost;
         saveView('multi', gameId);
+        dbg('▶ enterLobby ' + (isHost?'HOST':'GUEST') + ' gameId=' + gameId.slice(0,8));
 
         const gameState = await fetchGameState(gameId);
         if (!gameState) { alert('Salle introuvable.'); await leaveMultiplayer(); return; }
@@ -708,10 +703,11 @@ async function enterLobby(gameId, isHost) {
             .subscribe();
 
         if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
-        multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
+        multiStateChannel = supabaseClient.channel('multi-state-lobby-' + gameId)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
                 payload => {
                     if (payload.new.status === 'active' && payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
+                        dbg('▶ LOBBY: status=active détecté -> attachToGame');
                         cleanupLobby();
                         attachToGame(gameId, isHost);
                     }
@@ -737,7 +733,7 @@ async function enterLobby(gameId, isHost) {
                     await refreshLobbyPlayers();
                 }
             } finally { _lobbyRefreshing = false; }
-        }, 2000);
+        }, 1000);
 
     } finally {
         _enteringLobby = false;
@@ -755,16 +751,7 @@ async function refreshLobbyPlayers() {
     players.forEach((p, i) => {
         const isMe = p.user_id === state.user?.id;
         const isHostRow = i === 0;
-        html += `
-            <div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg">
-                <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-amber-500/30 text-amber-400 flex items-center justify-center text-[10px] font-black">
-                        ${isHostRow ? '👑' : '👤'}
-                    </div>
-                    <span class="text-sm font-bold text-white">${escapeHtml(p.display_name)}${isMe ? ' <span class="text-[10px] text-amber-400">(vous)</span>' : ''}</span>
-                </div>
-                <span class="text-[10px] font-bold ${isHostRow ? 'text-amber-400' : 'text-emerald-400'}">${isHostRow ? 'Hôte' : 'Prêt'}</span>
-            </div>`;
+        html += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg"><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-amber-500/30 text-amber-400 flex items-center justify-center text-[10px] font-black">${isHostRow ? '👑' : '👤'}</div><span class="text-sm font-bold text-white">${escapeHtml(p.display_name)}${isMe ? ' <span class="text-[10px] text-amber-400">(vous)</span>' : ''}</span></div><span class="text-[10px] font-bold ${isHostRow ? 'text-amber-400' : 'text-emerald-400'}">${isHostRow ? 'Hôte' : 'Prêt'}</span></div>`;
     });
     list.innerHTML = html;
 
@@ -802,15 +789,19 @@ async function hostStartGame() {
 
     const btn = $('btn-host-start');
     btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lancement...';
+    dbg('▶ HOST: lancement, ' + players.length + ' joueurs');
 
     try {
         const gs = await fetchGameState(currentMultiGameId);
         const cardsPerPlayer = gs?.cards_per_player || 6;
 
         const enginePlayers = players.map(p => ({ id: p.user_id, name: p.display_name, isHuman: true }));
+        dbg('▶ HOST: enginePlayers IDs=' + enginePlayers.map(p=>p.id.slice(0,8)).join(','));
+
         const initial = Engine8Master.createGame({ players: enginePlayers, cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
         Engine8Master.startRound(initial);
         const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
+        dbg('▶ HOST: currentPlayerIdx=' + initial.currentPlayerIdx + ' id=' + firstTurnEngineId.slice(0,8));
 
         const { error } = await supabaseClient.rpc('rpc_start_game', {
             p_game_id: currentMultiGameId,
@@ -819,9 +810,11 @@ async function hostStartGame() {
         });
         if (error) throw error;
 
+        dbg('▶ HOST: rpc_start_game OK');
         cleanupLobby();
         await attachToGame(currentMultiGameId, true);
     } catch (err) {
+        dbg('❌ HOST erreur: ' + err.message);
         alert('Erreur : ' + err.message);
         btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Lancer la partie';
     }
@@ -832,16 +825,16 @@ async function hostStartGame() {
 async function fetchGameState(gameId) {
     try {
         const { data, error } = await supabaseClient.rpc('rpc_get_game_state', { p_game_id: gameId });
-        if (error) { console.error('[fetchGameState]', error); return null; }
+        if (error) { dbg('❌ fetchGameState: ' + error.message); return null; }
         return data;
-    } catch (e) { console.error('[fetchGameState] exception', e); return null; }
+    } catch (e) { dbg('❌ fetchGameState EXC: ' + e.message); return null; }
 }
 async function fetchGamePlayers(gameId) {
     try {
         const { data, error } = await supabaseClient.rpc('rpc_get_game_players', { p_game_id: gameId });
-        if (error) { console.error('[fetchGamePlayers]', error); return null; }
+        if (error) { dbg('❌ fetchGamePlayers: ' + error.message); return null; }
         return data;
-    } catch (e) { console.error('[fetchGamePlayers] exception', e); return null; }
+    } catch (e) { dbg('❌ fetchGamePlayers EXC: ' + e.message); return null; }
 }
 
 async function attachToGame(gameId, isHost) {
@@ -849,6 +842,7 @@ async function attachToGame(gameId, isHost) {
     multiIsHost = isHost;
     multiLastProcessedEventId = 0;
     saveView('multi', gameId);
+    dbg('▶ attachToGame ' + (isHost?'HOST':'GUEST'));
 
     showOnlyScreen('game-board');
 
@@ -857,41 +851,47 @@ async function attachToGame(gameId, isHost) {
 
     if (gameState.state_json && Object.keys(gameState.state_json).length > 0) {
         applyMultiState(gameState.state_json);
+        dbg('▶ État initial chargé');
+    } else {
+        dbg('⚠ Aucun state_json dans games');
     }
 
     if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
     if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
     if (multiPollInterval) clearInterval(multiPollInterval);
 
+    // Realtime sur games (rapide)
     multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
             payload => {
                 if (payload.new.state_json && Object.keys(payload.new.state_json).length > 0) {
+                    dbg('📡 Realtime UPDATE reçu');
                     applyMultiState(payload.new.state_json);
                 }
             })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                const st = await fetchGameState(gameId);
-                if (st && st.state_json && Object.keys(st.state_json).length > 0) applyMultiState(st.state_json);
-            }
-        });
+        .subscribe();
 
+    // Realtime sur game_events côté hôte
     if (isHost) {
         multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'game_id=eq.' + gameId },
-                payload => handleRemoteAction(payload.new))
+                payload => {
+                    dbg('📡 Realtime EVENT reçu id=' + payload.new.id);
+                    handleRemoteAction(payload.new);
+                })
             .subscribe();
     }
 
+    // Polling 500ms côté invité (plus agressif)
+    // Polling 500ms côté hôte pour les events
     multiPollInterval = setInterval(async () => {
         if (!isHost) {
             const st = await fetchGameState(gameId);
             if (st && st.state_json && Object.keys(st.state_json).length > 0) {
-                // Comparaison intelligente (on ignore isHuman pour éviter la boucle infinie)
-                const serverStateStr = JSON.stringify(st.state_json, (k, v) => k === 'isHuman' ? undefined : v);
-                const localStateStr = JSON.stringify(game, (k, v) => k === 'isHuman' ? undefined : v);
+                const serverStateStr = JSON.stringify(st.state_json);
+                const localStateStr = JSON.stringify(game);
                 if (serverStateStr !== localStateStr) {
+                    dbg('🔄 Poll GUEST: state différent, apply');
                     applyMultiState(st.state_json);
                 }
             }
@@ -901,10 +901,13 @@ async function attachToGame(gameId, isHost) {
                 .eq('game_id', gameId)
                 .gt('id', multiLastProcessedEventId)
                 .order('id', { ascending: true });
-            if (error) { console.error('[poll hôte]', error); return; }
-            if (data && data.length > 0) data.forEach(ev => handleRemoteAction(ev));
+            if (error) { dbg('❌ Poll HOST: ' + error.message); return; }
+            if (data && data.length > 0) {
+                dbg('🔄 Poll HOST: ' + data.length + ' event(s)');
+                data.forEach(ev => handleRemoteAction(ev));
+            }
         }
-    }, 1500);
+    }, 500);
 }
 
 function applyMultiState(remoteState) {
@@ -915,6 +918,7 @@ function applyMultiState(remoteState) {
     game.players.forEach(p => { p.isHuman = (p.id === myUserId); });
     const currentEngineId = game.players[game.currentPlayerIdx]?.id;
     const isMyTurnNow = (currentEngineId === myUserId) && !game.roundEnded && !game.gameOver;
+    dbg('applyState: current=' + (currentEngineId||'?').slice(0,8) + ' me=' + (myUserId||'?').slice(0,8) + ' isMyTurn=' + isMyTurnNow);
     state.isHumanTurn = isMyTurnNow;
     state.isAiThinking = false;
     state.isAnimating = false;
@@ -930,42 +934,49 @@ async function handleRemoteAction(eventRow) {
     multiLastProcessedEventId = eventRow.id;
     const action = eventRow.payload;
     const playerId = eventRow.actor_id;
+    dbg('⚙ handleRemoteAction: type=' + action.type + ' actor=' + playerId.slice(0,8));
+
     let result = null;
     if (action.type === 'PLAY_CARD')        result = Engine8Master.playCard(game, playerId, action.cardIndex);
     else if (action.type === 'DRAW_CARD')   result = Engine8Master.drawCard(game, playerId);
     else if (action.type === 'CHOOSE_SUIT') result = Engine8Master.chooseSuit(game, playerId, action.suit);
     
-    if (!result || !result.valid) { console.warn('Action distante invalide:', action, result?.reason); return; }
+    if (!result || !result.valid) {
+        dbg('❌ Action invalide: ' + (result?.reason||'null') + ' playerId=' + playerId.slice(0,8) + ' current=' + game.players[game.currentPlayerIdx]?.id.slice(0,8));
+        return;
+    }
+    dbg('✔ Action valide, push state');
     
     const nextTurn = game.players[game.currentPlayerIdx];
-    await supabaseClient.rpc('rpc_push_state', {
+    const { error } = await supabaseClient.rpc('rpc_push_state', {
         p_game_id: currentMultiGameId, p_new_state: game,
         p_current_turn_user_id: nextTurn ? nextTurn.id : null,
         p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
     });
+    if (error) { dbg('❌ rpc_push_state: ' + error.message); return; }
     applyMultiState(game);
     
     const roundEndEv = result.events.find(e => e.type === 'ROUND_ENDED');
-    if (roundEndEv) {
-        showRoundEndModal(roundEndEv.summary, roundEndEv.winnerId);
-        return;
-    }
+    if (roundEndEv) { showRoundEndModal(roundEndEv.summary, roundEndEv.winnerId); return; }
     if (game.gameOver) { showGameOverModal(); return; }
     processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
 }
 
 async function sendMultiAction(action) {
     if (!currentMultiGameId) return;
+    dbg('📤 sendAction: ' + action.type);
     const { error } = await supabaseClient.rpc('rpc_send_action', {
         p_game_id: currentMultiGameId,
         p_action: action
     });
     if (error) {
-        console.error('[sendMultiAction] ❌ Échec envoi action:', error);
+        dbg('❌ sendAction: ' + error.message);
         alert('Impossible d\'envoyer l\'action : ' + error.message);
         state.isHumanTurn = true;
         state.isAnimating = false;
         updateUI();
+    } else {
+        dbg('✔ sendAction OK');
     }
 }
 
@@ -982,30 +993,30 @@ async function leaveMultiplayer() {
     returnToSetup();
 }
 
-/* ─────── Création / Jonction ─────── */
 async function createPrivateRoom(cardsPerPlayer) {
     if (!state.user) { alert('Connectez-vous.'); return; }
+    dbg('▶ createPrivateRoom cards=' + cardsPerPlayer);
     const { data, error } = await supabaseClient.rpc('rpc_create_multiplayer_game', {
         p_display_name: getDisplayName(),
         p_cards_per_player: cardsPerPlayer
     });
-    if (error) { console.error('[createPrivateRoom]', error); alert('Erreur : ' + error.message); return; }
+    if (error) { dbg('❌ create: ' + error.message); alert('Erreur : ' + error.message); return; }
     if (!data || !data.game_id) { alert('Erreur : réponse serveur invalide.'); return; }
+    dbg('✔ create OK gameId=' + data.game_id.slice(0,8));
     await enterLobby(data.game_id, true);
 }
 
 async function joinPrivateRoom(code) {
     if (!state.user) { alert('Connectez-vous.'); return; }
-    if (code.length !== 7 || !code.startsWith('8M-')) {
-        alert('Le code doit être au format 8M-XXXX.');
-        return;
-    }
+    if (code.length !== 7 || !code.startsWith('8M-')) { alert('Le code doit être au format 8M-XXXX.'); return; }
+    dbg('▶ joinPrivateRoom code=' + code);
     showSearchOverlay('Connexion à la salle...');
     const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', {
         p_code: code, p_display_name: getDisplayName()
     });
     hideSearchOverlay();
-    if (error) { alert('Erreur : ' + error.message); return; }
+    if (error) { dbg('❌ join: ' + error.message); alert('Erreur : ' + error.message); return; }
+    dbg('✔ join OK gameId=' + gameId.slice(0,8));
     await enterLobby(gameId, false);
 }
 
@@ -1023,7 +1034,6 @@ function showSearchOverlay(text) {
 }
 function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
 
-/* ─────── Actions humaines ─────── */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
@@ -1036,31 +1046,29 @@ async function handleHumanPlay(idx) {
             state.isAnimating = true; state.isHumanTurn = false;
             const result = Engine8Master.playCard(game, human.id, idx);
             if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            dbg('🎮 HOST joue idx=' + idx);
             state.pendingDiscardAnimation = true; updateUI();
             const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
             if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
             await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
             const next = game.players[game.currentPlayerIdx];
-            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
+            const { error } = await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
+            if (error) dbg('❌ push after play: ' + error.message);
             applyMultiState(game);
             if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
             const roundEndEv = result.events.find(e => e.type === 'ROUND_ENDED');
             if (roundEndEv) { showRoundEndModal(roundEndEv.summary, roundEndEv.winnerId); return; }
             if (game.gameOver) { showGameOverModal(); return; }
         } else {
+            dbg('🎮 GUEST envoie play idx=' + idx);
             state.isHumanTurn = false; updateUI();
             $('action-banner').innerText = 'Action envoyée, en attente...';
             await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
-            setTimeout(async () => {
-                if (!state.isHumanTurn && currentMultiGameId) {
-                    const st = await fetchGameState(currentMultiGameId);
-                    if (st && st.state_json) applyMultiState(st.state_json);
-                }
-            }, 4000);
         }
         return;
     }
     
+    // SOLO
     const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
     const toRect = $('discard-pile-container').getBoundingClientRect();
     state.isAnimating = true; state.isHumanTurn = false;
@@ -1084,20 +1092,17 @@ async function handleHumanDraw() {
             state.isAnimating = true; state.isHumanTurn = false;
             const result = Engine8Master.drawCard(game, human.id);
             if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+            dbg('🎮 HOST pioche');
             updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
             const next = game.players[game.currentPlayerIdx];
-            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+            const { error } = await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
+            if (error) dbg('❌ push after draw: ' + error.message);
             applyMultiState(game);
         } else {
+            dbg('🎮 GUEST envoie pioche');
             state.isHumanTurn = false; updateUI();
             $('action-banner').innerText = 'Pioche envoyée, en attente...';
             await sendMultiAction({ type: 'DRAW_CARD' });
-            setTimeout(async () => {
-                if (!state.isHumanTurn && currentMultiGameId) {
-                    const st = await fetchGameState(currentMultiGameId);
-                    if (st && st.state_json) applyMultiState(st.state_json);
-                }
-            }, 4000);
         }
         return;
     }
@@ -1227,7 +1232,6 @@ function returnToSetup() {
     showOnlyScreen('setup-screen');
 }
 
-/* ─────── Polling global (retrouver une partie en cours) ─────── */
 function startGlobalInvitePoll() {
     if (globalInvitePollInterval) clearInterval(globalInvitePollInterval);
     globalInvitePollInterval = setInterval(async () => {
@@ -1245,7 +1249,6 @@ function startGlobalInvitePoll() {
     }, 2000);
 }
 
-/* ─────── Restauration de la vue au démarrage ─────── */
 async function restoreViewAfterAuth() {
     const view = localStorage.getItem('8master-view');
     const gid = localStorage.getItem('8master-multi-game-id');
@@ -1254,7 +1257,6 @@ async function restoreViewAfterAuth() {
         if (view === 'solo' && loadSoloGameState()) return;
         showOnlyScreen('setup-screen'); return;
     }
-
     if (view === 'multi' && gid) {
         const gs = await fetchGameState(gid);
         if (gs) {
@@ -1263,13 +1265,11 @@ async function restoreViewAfterAuth() {
             if (gs.status === 'finished') { clearView(); }
         } else { clearView(); }
     }
-
     if (view === 'solo' && loadSoloGameState()) return;
     showOnlyScreen('setup-screen');
     saveView('setup');
 }
 
-/* ═══════════════════ DOM READY ═══════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
     const saved = Storage.load();
@@ -1284,7 +1284,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.ai-count-btn').forEach(b => { if (parseInt(b.getAttribute('data-count')) === state.aiCount) b.className = 'ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs'; });
     }
 
-    // Auth
     $('btn-open-auth').onclick = openAuthModal;
     $('btn-close-auth').onclick = () => $('modal-auth').classList.add('hidden');
     $('tab-login').onclick = () => switchAuthTab('login');
@@ -1311,16 +1310,13 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-auth-submit').onclick = handleAuthSubmit;
     $('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); await leaveMultiplayer(); await checkAuth(); showOnlyScreen('setup-screen'); };
 
-    // Config
     $('cards-range-input').addEventListener('input', (e) => { state.cardsPerPlayer = parseInt(e.target.value, 10); $('cards-count-display').innerText = state.cardsPerPlayer; Storage.save(); });
     document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = 'ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs'); e.target.className = 'ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs'; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
     $('player-name-input').addEventListener('change', Storage.save);
 
-    // Solo
     $('btn-start-game-final').onclick = startGameSession;
 
-    // Multi
     $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
     $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
     $('btn-create-room').onclick = () => {
@@ -1339,7 +1335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await joinPrivateRoom(code);
     };
 
-    // Lobby
     $('btn-host-start').onclick = hostStartGame;
     $('btn-leave-lobby').onclick = () => leaveMultiplayer();
     $('btn-copy-code').onclick = () => {
@@ -1349,7 +1344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { $('btn-copy-code').innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 1500);
     };
 
-    // Plateau
     $('btn-voluntary-draw').onclick = handleHumanDraw;
     $('deck-pile').onclick = () => { if (state.isHumanTurn && !state.isAiThinking && !state.isAnimating) handleHumanDraw(); };
     $('btn-sort-hand').onclick = () => { const h = humanPlayer(); if (h) { Engine8Master.sortHand(h); updateUI(); } };
@@ -1385,7 +1379,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); if (currentMultiGameId) applyMultiState(game); else prepareNextRound(); };
     $('btn-new-game').onclick = () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); };
 
-    // Watchdog IA solo
     setInterval(() => {
         if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing || currentMultiGameId) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
         const cur = game.players[game.currentPlayerIdx];
@@ -1394,11 +1387,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else { _watchdogLastIdx = game.currentPlayerIdx; _watchdogTick = 0; }
     }, 4000);
 
-    // Démarrage
     (async () => {
         await checkAuth();
         await restoreViewAfterAuth();
         startGlobalInvitePoll();
+        dbg('✅ Init OK');
     })();
 });
 </script>
