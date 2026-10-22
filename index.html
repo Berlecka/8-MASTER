@@ -445,7 +445,6 @@ let currentPhoneLength = 10;
 let currentMultiGameId = null;
 let multiStateChannel = null;
 let multiPlayersChannel = null;
-let multiPollInterval = null;
 let multiSearchPollInterval = null;
 let multiIsHost = false;
 
@@ -1008,12 +1007,6 @@ async function attachToGame(gameId, isHost) {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
             payload => { if (payload.new.state_json) applyMultiState(payload.new.state_json); })
         .subscribe();
-
-    if (multiPollInterval) clearInterval(multiPollInterval);
-    multiPollInterval = setInterval(async () => {
-        const { data } = await supabaseClient.from('games').select('state_json').eq('id', gameId).single();
-        if (data && data.state_json) applyMultiState(data.state_json);
-    }, 800);
 }
 
 async function pushInitialState(gameId) {
@@ -1051,7 +1044,6 @@ function applyMultiState(remoteState) {
 async function leaveMultiplayer() {
     if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
     if (multiPlayersChannel) { supabaseClient.removeChannel(multiPlayersChannel); multiPlayersChannel = null; }
-    if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
     if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
     if (window.lobbyPollInterval) { clearInterval(window.lobbyPollInterval); window.lobbyPollInterval = null; }
     try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e) {}
