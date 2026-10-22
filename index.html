@@ -119,7 +119,7 @@ body.light-theme .black-suit { color: #0f172a; }
             <label for="player-name-input" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Pseudo en jeu</label>
             <div class="relative">
                 <i class="fa-solid fa-user-astronaut absolute left-3.5 top-3.5 text-slate-500"></i>
-                <input type="text" id="player-name-input" maxlength="20" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition">
+                <input type="text" id="player-name-input" maxlength="20" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition" placeholder="Connectez-vous...">
             </div>
         </div>
         <div class="space-y-4 text-left">
@@ -506,7 +506,7 @@ const AudioFX = {
 
 const Storage = {
     save() {
-        try { localStorage.setItem('8master-config', JSON.stringify({ name: $('player-name-input')?.value || '', aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, sound: state.soundEnabled, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {}
+        try { localStorage.setItem('8master-config', JSON.stringify({ aiCount: state.aiCount, difficulty: state.aiDifficulty, botSpeed: state.botSpeed, sound: state.soundEnabled, theme: state.theme, cardsPerPlayer: state.cardsPerPlayer })); } catch (e) {}
     },
     load() {
         try { const raw = localStorage.getItem('8master-config'); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -550,7 +550,7 @@ function showEffectBanner(text) {
 function handAreaRect() { const h = $('human-hand'); if (!h) return null; const r = h.getBoundingClientRect(); return { left: r.left + r.width / 2 - 42, top: r.top + r.height - 90, width: 84, height: 108 }; }
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
 
-/* AUTH */
+/* AUTH & VERROUILLAGE DU PSEUDONYME */
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -619,24 +619,46 @@ async function handleAuthSubmit() {
         $('auth-error').classList.remove('hidden'); $('auth-step-1').classList.remove('hidden'); $('auth-step-2').classList.add('hidden');
     } finally { btn.disabled = false; btn.innerHTML = 'Confirmer <i class="fa-solid fa-check"></i>'; }
 }
+
 async function checkAuth() {
     if (!supabaseClient) return;
+    const nameInput = $('player-name-input');
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
-            const { data: profile } = await supabaseClient.from('profiles').select('is_banned').eq('id', session.user.id).single();
+            const { data: profile } = await supabaseClient.from('profiles').select('is_banned, username_display').eq('id', session.user.id).single();
             if (profile && profile.is_banned) { await supabaseClient.auth.signOut(); alert("Compte banni."); window.location.reload(); return; }
             state.user = session.user;
             $('btn-open-auth').classList.add('hidden'); $('btn-show-profile').classList.remove('hidden'); $('btn-show-profile').classList.add('flex');
             $('btn-logout').classList.remove('hidden'); $('btn-logout').classList.add('flex');
-            if (session.user.user_metadata.username) $('player-name-input').value = session.user.user_metadata.username;
+            
+            const username = profile?.username_display || session.user.user_metadata?.username || 'Joueur';
+            if (nameInput) {
+                nameInput.value = username;
+                nameInput.disabled = true; // Verrouillage strict du pseudonyme
+                nameInput.classList.add('opacity-70', 'cursor-not-allowed', 'bg-slate-900');
+            }
         } else {
             state.user = null;
             $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
             $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
+            
+            if (nameInput) {
+                nameInput.value = '';
+                nameInput.disabled = false;
+                nameInput.placeholder = 'Connectez-vous...';
+                nameInput.classList.remove('opacity-70', 'cursor-not-allowed', 'bg-slate-900');
+            }
         }
-    } catch (err) { state.user = null; }
+    } catch (err) { 
+        state.user = null; 
+        if (nameInput) {
+            nameInput.disabled = false;
+            nameInput.classList.remove('opacity-70', 'cursor-not-allowed', 'bg-slate-900');
+        }
+    }
 }
+
 async function showProfile() {
     if (!state.user) return;
     $('modal-profile').classList.remove('hidden');
@@ -803,7 +825,7 @@ function startSearchPoll() {
 }
 function stopSearchPoll() { if (multiSearchPollInterval) clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
 
-/* SALON D'ATTENTE (LOBBY) */
+/* SALON D'ATTENTE (LOBBY) ROBUSTE AVEC POLLING */
 async function showPrivateRoomLobby(gameId, code, isHost) {
     currentMultiGameId = gameId;
     multiIsHost = isHost;
@@ -835,6 +857,7 @@ async function showPrivateRoomLobby(gameId, code, isHost) {
         const { data: gameRow } = await supabaseClient.from('games').select('status').eq('id', gameId).single();
         if (gameRow && gameRow.status === 'playing') {
             ov.classList.add('hidden');
+            if (window.lobbyPollInterval) clearInterval(window.lobbyPollInterval);
             if (multiPlayersChannel) supabaseClient.removeChannel(multiPlayersChannel);
             await attachToGame(gameId, isHost);
             return;
@@ -859,6 +882,7 @@ async function showPrivateRoomLobby(gameId, code, isHost) {
                     <button id="btn-cancel-private" class="w-full bg-red-950/60 hover:bg-red-900/80 text-red-300 py-2 rounded-xl text-xs">Annuler</button>`;
                 
                 $('btn-start-lobby-game').onclick = async () => {
+                    if (window.lobbyPollInterval) clearInterval(window.lobbyPollInterval);
                     await supabaseClient.rpc('rpc_start_private_game', { p_game_id: gameId });
                     ov.classList.add('hidden');
                     if (multiPlayersChannel) supabaseClient.removeChannel(multiPlayersChannel);
@@ -879,11 +903,15 @@ async function showPrivateRoomLobby(gameId, code, isHost) {
                     setTimeout(() => { if ($('btn-copy-private-code')) $('btn-copy-private-code').textContent = 'Copier le code'; }, 1500);
                 };
             }
-            if ($('btn-cancel-private')) $('btn-cancel-private').onclick = () => { ov.classList.add('hidden'); leaveMultiplayer(); };
+            if ($('btn-cancel-private')) $('btn-cancel-private').onclick = () => { if (window.lobbyPollInterval) clearInterval(window.lobbyPollInterval); ov.classList.add('hidden'); leaveMultiplayer(); };
         }
     };
 
     await renderLobbyState();
+
+    // Sécurité Polling toutes les 1.5s pour forcer la mise à jour de l'hôte
+    if (window.lobbyPollInterval) clearInterval(window.lobbyPollInterval);
+    window.lobbyPollInterval = setInterval(renderLobbyState, 1500);
 
     if (multiPlayersChannel) supabaseClient.removeChannel(multiPlayersChannel);
     multiPlayersChannel = supabaseClient.channel('lobby-players-' + gameId)
@@ -971,7 +999,7 @@ async function handleRemoteAction(eventRow) {
     const nextTurn = game.players[game.currentPlayerIdx];
     await supabaseClient.rpc('rpc_push_state', {
         p_game_id: currentMultiGameId, p_new_state: game,
-        p_current_turn_user_id: nextTurn ? nextTurn.id : null,
+        p_current_turn_user_id: nextTurn ? next.id : null,
         p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
     });
     applyMultiState(game);
@@ -988,6 +1016,7 @@ async function leaveMultiplayer() {
     if (multiPlayersChannel) { supabaseClient.removeChannel(multiPlayersChannel); multiPlayersChannel = null; }
     if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
     if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
+    if (window.lobbyPollInterval) { clearInterval(window.lobbyPollInterval); window.lobbyPollInterval = null; }
     try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e) {}
     currentMultiGameId = null;
     multiLastProcessedEventId = 0;
@@ -1237,7 +1266,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('cards-range-input').addEventListener('input', (e) => { state.cardsPerPlayer = parseInt(e.target.value, 10); $('cards-count-display').innerText = state.cardsPerPlayer; Storage.save(); });
     document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = "ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs"); e.target.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
-    $('player-name-input').addEventListener('change', Storage.save);
     $('btn-start-game-final').onclick = startGameSession;
     $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
     $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
