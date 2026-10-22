@@ -443,14 +443,12 @@ let game = null;
 let _watchdogLastIdx = -1; let _watchdogTick = 0;
 let currentPhoneLength = 10;
 
-/* MULTIJOUEUR V4 — LOBBY & SYNCHRO ROBUSTE */
+/* MULTIJOUEUR V4 — SYNCHRONISATION DIRECTE ROBUSTE */
 let currentMultiGameId = null;
 let multiStateChannel = null;
-let multiEventsChannel = null;
 let multiPlayersChannel = null;
 let multiPollInterval = null;
 let multiSearchPollInterval = null;
-let multiLastProcessedEventId = 0;
 let multiIsHost = false;
 
 function $(id) { return document.getElementById(id); }
@@ -769,7 +767,7 @@ function scheduleNextTurn() {
     }
 }
 
-/* MULTIJOUEUR V4 — LOBBY ET REJOINTEMENT */
+/* MULTIJOUEUR V4 — LOBBY ET SYNCHRONISATION DIRECTE */
 async function enterMultiplayer(mode, opts) {
     if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; }
     opts = opts || {};
@@ -825,7 +823,7 @@ function startSearchPoll() {
 }
 function stopSearchPoll() { if (multiSearchPollInterval) clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
 
-/* SALON D'ATTENTE (LOBBY) ROBUSTE AVEC POLLING */
+/* SALON D'ATTENTE (LOBBY) */
 async function showPrivateRoomLobby(gameId, code, isHost) {
     currentMultiGameId = gameId;
     multiIsHost = isHost;
@@ -909,7 +907,6 @@ async function showPrivateRoomLobby(gameId, code, isHost) {
 
     await renderLobbyState();
 
-    // Sécurité Polling toutes les 1.5s pour forcer la mise à jour de l'hôte
     if (window.lobbyPollInterval) clearInterval(window.lobbyPollInterval);
     window.lobbyPollInterval = setInterval(renderLobbyState, 1500);
 
@@ -923,7 +920,6 @@ async function showPrivateRoomLobby(gameId, code, isHost) {
 async function attachToGame(gameId, isHost) {
     currentMultiGameId = gameId;
     multiIsHost = isHost;
-    multiLastProcessedEventId = 0;
     ['setup-screen','modal-multi','modal-directory','modal-invite-received','private-room-overlay'].forEach(id => $(id)?.classList.add('hidden'));
     $('game-board').classList.remove('hidden');
 
@@ -941,14 +937,6 @@ async function attachToGame(gameId, isHost) {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
             payload => { if (payload.new.state_json) applyMultiState(payload.new.state_json); })
         .subscribe();
-
-    if (isHost) {
-        if (multiEventsChannel) supabaseClient.removeChannel(multiEventsChannel);
-        multiEventsChannel = supabaseClient.channel('multi-events-' + gameId)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: 'game_id=eq.' + gameId },
-                payload => handleRemoteAction(payload.new))
-            .subscribe();
-    }
 
     if (multiPollInterval) clearInterval(multiPollInterval);
     multiPollInterval = setInterval(async () => {
@@ -984,42 +972,14 @@ function applyMultiState(remoteState) {
     else if (!isMyTurnNow) { const cur = game.players[game.currentPlayerIdx]; $('action-banner').innerText = cur ? `⏳ Tour de ${cur.name}` : 'En attente...'; }
 }
 
-async function handleRemoteAction(eventRow) {
-    if (!eventRow || !eventRow.payload || !game) return;
-    if (eventRow.id <= multiLastProcessedEventId) return;
-    if (eventRow.actor_id === state.user?.id) return;
-    multiLastProcessedEventId = eventRow.id;
-    const action = eventRow.payload;
-    const playerId = eventRow.actor_id;
-    let result = null;
-    if (action.type === 'PLAY_CARD')        result = Engine8Master.playCard(game, playerId, action.cardIndex);
-    else if (action.type === 'DRAW_CARD')   result = Engine8Master.drawCard(game, playerId);
-    else if (action.type === 'CHOOSE_SUIT') result = Engine8Master.chooseSuit(game, playerId, action.suit);
-    if (!result || !result.valid) { console.warn('Action distante invalide:', action, result?.reason); return; }
-    const nextTurn = game.players[game.currentPlayerIdx];
-    await supabaseClient.rpc('rpc_push_state', {
-        p_game_id: currentMultiGameId, p_new_state: game,
-        p_current_turn_user_id: nextTurn ? next.id : null,
-        p_finished: game.gameOver, p_winner_user_id: game.gameOver ? nextTurn?.id : null
-    });
-    applyMultiState(game);
-    processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
-}
-
-async function sendMultiAction(action) {
-    await supabaseClient.rpc('rpc_send_action', { p_game_id: currentMultiGameId, p_action: action });
-}
-
 async function leaveMultiplayer() {
     if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
-    if (multiEventsChannel) { supabaseClient.removeChannel(multiEventsChannel); multiEventsChannel = null; }
     if (multiPlayersChannel) { supabaseClient.removeChannel(multiPlayersChannel); multiPlayersChannel = null; }
     if (multiPollInterval) { clearInterval(multiPollInterval); multiPollInterval = null; }
     if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
     if (window.lobbyPollInterval) { clearInterval(window.lobbyPollInterval); window.lobbyPollInterval = null; }
     try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e) {}
     currentMultiGameId = null;
-    multiLastProcessedEventId = 0;
     returnToSetup();
 }
 
@@ -1046,74 +1006,70 @@ window._invitePlayer = async (userId, name) => {
     await enterMultiplayer('invite', { inviteeId: userId, inviteeName: name });
 };
 
-/* ACTIONS HUMAINES */
+/* ACTIONS HUMAINES EN MULTIJOUEUR (SYNCHRONISATION DIRECTE) */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
     if (!card || !Engine8Master.isCardPlayable(game, card)) return;
-    if (currentMultiGameId) {
-        if (multiIsHost) {
-            const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
-            const toRect = $('discard-pile-container').getBoundingClientRect();
-            state.isAnimating = true; state.isHumanTurn = false;
-            const result = Engine8Master.playCard(game, human.id, idx);
-            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
-            state.pendingDiscardAnimation = true; updateUI();
-            const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
-            if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
-            await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
-            const next = game.players[game.currentPlayerIdx];
-            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null, p_finished: game.gameOver, p_winner_user_id: game.gameOver ? human.id : null });
-            applyMultiState(game);
-            if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); }
-        } else {
-            await sendMultiAction({ type: 'PLAY_CARD', cardIndex: idx });
-            state.isHumanTurn = false; updateUI();
-            $('action-banner').innerText = 'Action envoyée, en attente...';
-        }
-        return;
-    }
+
     const fromRect = $('human-hand').children[idx]?.getBoundingClientRect();
     const toRect = $('discard-pile-container').getBoundingClientRect();
     state.isAnimating = true; state.isHumanTurn = false;
+
     const result = Engine8Master.playCard(game, human.id, idx);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     if (playedEvent && fromRect && toRect && state.animationsEnabled) await animateFlight(fromRect, toRect, playedEvent.card, false);
     await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
     state.isAnimating = false;
+
+    if (currentMultiGameId) {
+        const next = game.players[game.currentPlayerIdx];
+        await supabaseClient.rpc('rpc_push_state', {
+            p_game_id: currentMultiGameId,
+            p_new_state: game,
+            p_current_turn_user_id: next ? next.id : null,
+            p_finished: game.gameOver,
+            p_winner_user_id: game.gameOver ? human.id : null
+        });
+        applyMultiState(game);
+        if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); }
+        return;
+    }
+
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     if (result.needsSuitChoice) { state.needsSuitChoice = true; $('modal-suit-picker').classList.remove('hidden'); return; }
     scheduleNextTurn();
 }
+
 async function handleHumanDraw() {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer();
-    if (currentMultiGameId) {
-        if (multiIsHost) {
-            state.isAnimating = true; state.isHumanTurn = false;
-            const result = Engine8Master.drawCard(game, human.id);
-            if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
-            updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
-            const next = game.players[game.currentPlayerIdx];
-            await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
-            applyMultiState(game);
-        } else {
-            await sendMultiAction({ type: 'DRAW_CARD' });
-            state.isHumanTurn = false; updateUI();
-            $('action-banner').innerText = 'Pioche envoyée, en attente...';
-        }
-        return;
-    }
     state.isAnimating = true; state.isHumanTurn = false;
+
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+
     updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
     state.isAnimating = false;
+
+    if (currentMultiGameId) {
+        const next = game.players[game.currentPlayerIdx];
+        await supabaseClient.rpc('rpc_push_state', {
+            p_game_id: currentMultiGameId,
+            p_new_state: game,
+            p_current_turn_user_id: next ? next.id : null
+        });
+        applyMultiState(game);
+        return;
+    }
+
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
+
 async function executeAiTurn(bot) {
     if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
     const playable = Engine8Master.getPlayableCards(game, bot.id);
@@ -1299,32 +1255,30 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
     $('btn-modal-close-rules').onclick = () => $('modal-rules').classList.add('hidden');
     $('btn-theme').onclick = () => { applyTheme(state.theme === 'dark' ? 'light' : 'dark'); Storage.save(); };
+    
     document.querySelectorAll('.suit-select-btn').forEach(b => b.onclick = async (e) => {
         $('modal-suit-picker').classList.add('hidden'); state.needsSuitChoice = false;
         const suit = e.target.getAttribute('data-suit');
-        if (currentMultiGameId) {
-            if (multiIsHost) {
-                const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
-                if (res.valid) {
-                    const next = game.players[game.currentPlayerIdx];
-                    await supabaseClient.rpc('rpc_push_state', { p_game_id: currentMultiGameId, p_new_state: game, p_current_turn_user_id: next ? next.id : null });
-                    applyMultiState(game); processEvents(res.events);
-                }
-            } else { await sendMultiAction({ type: 'CHOOSE_SUIT', suit }); }
-            return;
-        }
         const res = Engine8Master.chooseSuit(game, humanPlayer().id, suit);
-        if (res.valid) { updateUI(); processEvents(res.events); } scheduleNextTurn();
+        if (res.valid) {
+            updateUI(); processEvents(res.events);
+            if (currentMultiGameId) {
+                const next = game.players[game.currentPlayerIdx];
+                await supabaseClient.rpc('rpc_push_state', {
+                    p_game_id: currentMultiGameId,
+                    p_new_state: game,
+                    p_current_turn_user_id: next ? next.id : null
+                });
+                applyMultiState(game);
+                return;
+            }
+        }
+        if (!currentMultiGameId) scheduleNextTurn();
     });
+
     $('btn-board-next-round').onclick = () => { $('board-winner-panel').classList.add('hidden'); if (currentMultiGameId) applyMultiState(game); else prepareNextRound(); };
     $('btn-new-game').onclick = () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); };
-    setInterval(() => {
-        if (!game || game.roundEnded || game.gameOver || state.isAnimating || state.roundProcessing || currentMultiGameId) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
-        const cur = game.players[game.currentPlayerIdx];
-        if (!cur || cur.isHuman) { _watchdogLastIdx = -1; _watchdogTick = 0; return; }
-        if (_watchdogLastIdx === game.currentPlayerIdx) { _watchdogTick++; if (_watchdogTick >= 2) { _watchdogTick = 0; executeAiTurn(cur); } }
-        else { _watchdogLastIdx = game.currentPlayerIdx; _watchdogTick = 0; }
-    }, 4000);
+    
     checkAuth().finally(() => {
         if (!loadGameState()) { $('setup-screen').classList.remove('hidden'); $('game-board').classList.add('hidden'); }
     });
