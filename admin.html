@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Admin - 8-Master</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-black text-amber-400 mb-6">Panneau Admin (V3)</h1>
+        <div id="login-zone" class="bg-slate-900 p-6 rounded-2xl">
+            <h2 class="text-xl mb-4">Connexion Admin</h2>
+            <input type="text" id="admin-user" placeholder="Pseudo" class="w-full p-2 mb-2 bg-slate-800 rounded">
+            <input type="password" id="admin-pass" placeholder="Mot de passe" class="w-full p-2 mb-2 bg-slate-800 rounded">
+            <button onclick="login()" class="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded">Se connecter</button>
+        </div>
+        <div id="dashboard" class="hidden">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-900 p-4 rounded-xl">
+                    <h3 class="text-slate-400 text-sm">Créer un tournoi</h3>
+                    <button onclick="alert('Interface en construction')" class="mt-2 bg-emerald-500 text-white px-4 py-2 rounded">Nouveau Tournoi</button>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-xl">
+                    <h3 class="text-slate-400 text-sm">Gestion des joueurs</h3>
+                    <button onclick="loadPlayers()" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded">Actualiser la liste</button>
+                </div>
+            </div>
+            <div id="players-list" class="bg-slate-900 p-4 rounded-xl space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = supabase.createClient('https://cqodggshbbxhqnkvchhx.supabase.co', 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl');
+        
+        async function login() {
+            const u = document.getElementById('admin-user').value;
+            const p = document.getElementById('admin-pass').value;
+            const email = `${u.toLowerCase().replace(/[^a-z0-9]/g, '')}@8master.game`;
+            
+            const { error } = await supabase.auth.signInWithPassword({ email, password: p });
+            if (error) return alert("Erreur de connexion");
+            
+            const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', (await supabase.auth.getUser()).data.user.id).single();
+            if (!profile.is_admin) {
+                await supabase.auth.signOut();
+                return alert("Accès refusé : Vous n'êtes pas admin.");
+            }
+            
+            document.getElementById('login-zone').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadPlayers();
+        }
+
+        async function loadPlayers() {
+            const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+            data.forEach(p => {
+                list.innerHTML += `
+                    <div class="flex justify-between border-b border-slate-800 pb-2">
+                        <span>${p.username_display} ${p.is_admin ? '👑' : ''}</span>
+                        <span class="text-amber-400">ELO: ${p.elo_global}</span>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

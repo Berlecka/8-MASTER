@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8-Master v3</title>
+<meta name="theme-color" content="#0f172a">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap');
+:root { --bg-1: #0f172a; --bg-2: #020617; --panel: rgba(15,23,42,0.75); --panel-border: rgba(255,255,255,0.08); --text: #f8fafc; --text-muted: #94a3b8; --felt-1: #1e3a29; --felt-2: #062012; --felt-border: #2d1810; --card-bg: #ffffff; --card-border: #cbd5e1; --accent: #f59e0b; }
+body.light-theme { --bg-1: #e2e8f0; --bg-2: #cbd5e1; --panel: rgba(255,255,255,0.85); --panel-border: rgba(0,0,0,0.1); --text: #0f172a; --text-muted: #475569; --felt-1: #4a7c59; --felt-2: #2d4a37; --felt-border: #5c3a1e; --card-bg: #fefefe; --card-border: #94a3b8; --accent: #d97706; }
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: 'Outfit', sans-serif; background: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-2) 100%); min-height: 100vh; color: var(--text); user-select: none; overflow-x: hidden; }
+.glass-panel { background: var(--panel); backdrop-filter: blur(16px); border: 1px solid var(--panel-border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.felt-table { background: radial-gradient(circle at center, var(--felt-1) 0%, var(--felt-2) 100%); border: 8px solid var(--felt-border); box-shadow: inset 0 0 80px rgba(0,0,0,0.8), 0 15px 35px rgba(0,0,0,0.8); border-radius: 28px; }
+.playing-card { width: 68px; height: 102px; background: var(--card-bg); border-radius: 8px; box-shadow: 0 6px 15px rgba(0,0,0,0.4); transition: transform 0.2s, box-shadow 0.2s; position: relative; cursor: pointer; border: 1px solid var(--card-border); }
+@media (min-width: 640px) { .playing-card { width: 85px; height: 128px; border-radius: 10px; } }
+.playing-card.playable { box-shadow: 0 0 15px var(--accent); border: 2px solid var(--accent); }
+.playing-card.not-playable { cursor: not-allowed; opacity: 0.5; filter: grayscale(0.8); }
+.playing-card.playable:hover { transform: translateY(-8px); }
+#discard-pile-container > .playing-card { transform: scale(1.1); box-shadow: 0 10px 22px rgba(0,0,0,0.55); }
+.card-back-red { border: 2px solid #ffffff; background: radial-gradient(circle, #dc2626 20%, #450a0a 90%); }
+.card-back-red::after { content: "8"; font-weight: 900; font-size: 1.8rem; color: rgba(255,255,255,0.25); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.red-suit { color: #dc2626; } .black-suit { color: #0f172a; }
+#suit-indicator { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; font-weight: 900; background: #f59e0b; color: #0f172a; box-shadow: 0 0 15px #f59e0b; z-index: 20; }
+.active-turn-glow { box-shadow: 0 0 15px rgba(245,158,11,0.8); border-color: #f59e0b; }
+#debug-panel { position: fixed; bottom: 0; left: 0; right: 0; max-height: 25vh; background: rgba(0,0,0,0.9); color: #0f0; font-family: monospace; font-size: 10px; padding: 5px; overflow-y: auto; z-index: 9998; display: none; border-top: 2px solid #0f0;}
+#debug-toggle { position: fixed; bottom: 8px; right: 8px; z-index: 9999; background: #0f0; color: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+</style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
+
+<button id="debug-toggle" onclick="document.getElementById('debug-panel').style.display = document.getElementById('debug-panel').style.display === 'block' ? 'none' : 'block'">DEBUG</button>
+<div id="debug-panel"></div>
+
+<header class="w-full max-w-2xl flex justify-between items-center py-2 px-3 glass-panel rounded-2xl mb-2">
+    <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg">8</div>
+        <div><h1 class="text-lg font-black tracking-wider text-amber-400 leading-tight">MASTER</h1></div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button id="btn-show-profile" class="hidden bg-slate-800 text-amber-400 text-xs font-bold px-3 h-9 rounded-xl">Profil</button>
+        <button id="btn-open-auth" class="bg-amber-500 text-slate-950 font-black text-xs px-4 h-9 rounded-xl">Connexion</button>
+        <button id="btn-logout" class="hidden bg-red-950/60 text-red-200 text-xs font-bold px-3 h-9 rounded-xl">Quitter</button>
+    </div>
+</header>
+
+<!-- ÉCRAN MENU -->
+<main id="setup-screen" class="w-full max-w-md glass-panel rounded-3xl p-6 my-auto text-center hidden">
+    <div id="pseudo-connected-banner" class="hidden text-left mb-4">
+        <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center text-sm"><i class="fa-solid fa-user-astronaut"></i></div>
+            <div><p class="text-[10px] font-bold uppercase text-emerald-400">Connecté</p><p id="pseudo-connected-name" class="text-sm font-black text-white">Pseudo</p></div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-3 mt-5">
+        <button id="btn-start-solo" class="w-full bg-slate-800 text-amber-400 font-black py-3 rounded-2xl text-sm"><i class="fa-solid fa-robot"></i> Solo (Local)</button>
+        <button id="btn-open-multi" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-2xl text-sm"><i class="fa-solid fa-users"></i> Multijoueur</button>
+    </div>
+</main>
+
+<!-- MODAL MULTI -->
+<div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 rounded-3xl p-6 max-w-sm w-full text-center relative">
+        <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <h2 class="text-2xl font-black text-amber-400 mb-4">Multijoueur</h2>
+        <div class="space-y-4">
+            <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl"><i class="fa-solid fa-plus"></i> Créer une salle privée</button>
+            <div class="flex items-center gap-2 my-2"><div class="h-px bg-slate-800 flex-1"></div><span class="text-xs text-slate-500 font-bold">OU</span><div class="h-px bg-slate-800 flex-1"></div></div>
+            <div>
+                <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black uppercase" placeholder="8M-XXXX">
+                <button id="btn-join-room" class="w-full mt-2 bg-slate-800 text-white font-bold py-3 rounded-xl"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ÉCRAN LOBBY -->
+<div id="waiting-room" class="fixed inset-0 bg-slate-950 z-[90] flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-3xl p-6 max-w-md w-full text-center">
+        <h2 class="text-2xl font-black text-white mb-2">Salle d'attente</h2>
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 mb-4">
+            <p class="text-[10px] font-bold uppercase text-amber-400 mb-1">Code de la salle</p>
+            <span id="lobby-code" class="text-3xl font-black text-amber-400 tracking-widest">8M-XXXX</span>
+        </div>
+        <div class="bg-slate-900/50 rounded-2xl p-4 mb-4 text-left">
+            <h3 class="text-xs font-bold text-slate-400 uppercase mb-2">Joueurs</h3>
+            <div id="lobby-players-list" class="space-y-2"></div>
+        </div>
+        <button id="btn-host-start" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl mb-2 hidden">Lancer la partie</button>
+        <button id="btn-leave-lobby" class="w-full bg-red-950/60 text-red-200 font-bold py-2 rounded-xl text-xs">Quitter</button>
+    </div>
+</div>
+
+<!-- PLATEAU DE JEU -->
+<div id="game-board" class="w-full max-w-4xl felt-table p-4 flex flex-col justify-between min-h-[580px] relative hidden my-auto">
+    <div class="flex justify-between items-center bg-slate-950/70 p-2 rounded-xl text-xs mb-2">
+        <div>Tour : <span id="hud-turn" class="font-black text-amber-400">Vous</span></div>
+        <div>Famille : <span id="hud-suit" class="font-bold text-white">Libre</span></div>
+    </div>
+    
+    <div id="opponents-container" class="grid grid-cols-3 gap-2 mb-4"></div>
+    
+    <div class="flex justify-center items-center gap-12 my-4 relative">
+        <div class="text-center relative">
+            <div id="deck-pile" class="playing-card card-back-red cursor-pointer"></div>
+            <span class="block text-xs mt-1">Talon</span>
+        </div>
+        <div class="text-center relative">
+            <div id="suit-indicator" class="hidden"></div>
+            <div id="discard-pile-container" class="relative"></div>
+            <span class="block text-xs mt-1">Défausse</span>
+        </div>
+    </div>
+
+    <div id="action-banner" class="text-center bg-amber-500/10 text-amber-300 text-xs font-bold py-2 rounded-xl mb-2">Prêt !</div>
+
+    <div class="bg-slate-950/70 p-3 rounded-2xl">
+        <div class="flex justify-between text-xs mb-2">
+            <span id="human-name" class="font-bold">Vous</span>
+            <span id="human-cards" class="text-amber-400 font-bold">🎴 0</span>
+        </div>
+        <div id="human-hand" class="flex flex-wrap justify-center gap-2 min-h-[100px]"></div>
+        <div class="flex justify-center gap-2 mt-3">
+            <button id="btn-draw" class="bg-slate-800 text-amber-400 font-bold text-xs py-2 px-4 rounded-xl"><i class="fa-solid fa-hand"></i> Piocher</button>
+            <button id="btn-leave-game" class="bg-red-950/60 text-red-200 font-bold text-xs py-2 px-4 rounded-xl">Quitter</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AUTH -->
+<div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 rounded-3xl p-6 max-w-md w-full relative">
+        <button id="btn-close-auth" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+        <div class="flex bg-slate-950 rounded-xl p-1 mb-6"><button id="tab-login" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white">Connexion</button><button id="tab-register" class="flex-1 py-2 text-xs font-bold text-slate-400">Inscription</button></div>
+        
+        <div id="auth-login-step">
+            <form id="login-form" class="space-y-3" onsubmit="event.preventDefault();">
+                <input type="text" id="login-username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-white" placeholder="Pseudo">
+                <input type="password" id="login-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-white" placeholder="Mot de passe">
+                <div id="login-error" class="hidden text-red-400 text-xs text-center"></div>
+                <button type="submit" class="w-full bg-amber-500 text-slate-950 font-black py-2 rounded-xl">Se connecter</button>
+            </form>
+        </div>
+
+        <div id="auth-register-step" class="hidden">
+            <form id="auth-form" class="space-y-3" onsubmit="event.preventDefault();">
+                <input type="text" id="auth-username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-white" placeholder="Pseudo">
+                <input type="tel" id="auth-whatsapp" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-white" placeholder="WhatsApp">
+                <input type="password" id="auth-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-white" placeholder="Mot de passe">
+                <div id="auth-error" class="hidden text-red-400 text-xs text-center"></div>
+                <button type="submit" class="w-full bg-amber-500 text-slate-950 font-black py-2 rounded-xl">S'inscrire</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CHOIX COULEUR (Pour le 8) -->
+<div id="modal-suit-picker" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 p-6 rounded-3xl text-center">
+        <h3 class="text-xl font-black text-amber-400 mb-4">Choisir la famille</h3>
+        <div class="grid grid-cols-2 gap-3">
+            <button data-suit="♥️" class="suit-btn bg-slate-800 p-4 rounded-xl text-red-500 text-2xl">♥️</button>
+            <button data-suit="♦️" class="suit-btn bg-slate-800 p-4 rounded-xl text-red-500 text-2xl">♦️</button>
+            <button data-suit="♣️" class="suit-btn bg-slate-800 p-4 rounded-xl text-slate-200 text-2xl">♣️</button>
+            <button data-suit="♠️" class="suit-btn bg-slate-800 p-4 rounded-xl text-slate-200 text-2xl">♠️</button>
+        </div>
+    </div>
+</div>
+
+<script src="engine-8master.js"></script>
+<script>
+const SUPABASE_URL = 'https://cqodggshbbxhqnkvchhx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_WZH8IbWg4rVyO8e2h8KXig_xlmHy9wl';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function dbg(msg) {
+    const p = document.getElementById('debug-panel');
+    p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + p.innerHTML;
+    console.log(msg);
+}
+
+const state = {
+    user: null,
+    currentGameId: null,
+    isHost: false,
+    gameState: null, // Le state_json venant du serveur
+    gameChannel: null,
+    lobbyChannel: null,
+    // Solo
+    soloGame: null
+};
+
+function $(id) { return document.getElementById(id); }
+
+// ─────── AUTHENTIFICATION ───────
+$('tab-login').onclick = () => { $('tab-login').classList.add('bg-slate-800','text-white'); $('tab-register').classList.remove('bg-slate-800','text-white'); $('auth-login-step').classList.remove('hidden'); $('auth-register-step').classList.add('hidden'); };
+$('tab-register').onclick = () => { $('tab-register').classList.add('bg-slate-800','text-white'); $('tab-login').classList.remove('bg-slate-800','text-white'); $('auth-login-step').classList.add('hidden'); $('auth-register-step').classList.remove('hidden'); };
+
+$('btn-open-auth').onclick = () => $('modal-auth').classList.remove('hidden');
+$('btn-close-auth').onclick = () => $('modal-auth').classList.add('hidden');
+
+function generateEmail(username) { return `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@8master.game`; }
+
+$('login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = generateEmail($('login-username').value.trim());
+    const pwd = $('login-password').value;
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pwd });
+    if (error) { $('login-error').textContent = "Erreur de connexion"; $('login-error').classList.remove('hidden'); return; }
+    $('modal-auth').classList.add('hidden');
+    checkAuth();
+};
+
+$('auth-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = generateEmail($('auth-username').value.trim());
+    const pwd = $('auth-password').value;
+    const wa = $('auth-whatsapp').value;
+    const { error } = await supabaseClient.auth.signUp({ email, password: pwd, options: { data: { username: $('auth-username').value.trim(), whatsapp: wa } } });
+    if (error) { $('auth-error').textContent = error.message; $('auth-error').classList.remove('hidden'); return; }
+    await supabaseClient.auth.signInWithPassword({ email, password: pwd });
+    $('modal-auth').classList.add('hidden');
+    checkAuth();
+};
+
+async function checkAuth() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        state.user = session.user;
+        $('btn-open-auth').classList.add('hidden');
+        $('btn-show-profile').classList.remove('hidden');
+        $('btn-logout').classList.remove('hidden');
+        $('pseudo-connected-banner').classList.remove('hidden');
+        $('pseudo-connected-name').textContent = session.user.user_metadata.username || 'Joueur';
+        $('setup-screen').classList.remove('hidden');
+    } else {
+        state.user = null;
+        $('btn-open-auth').classList.remove('hidden');
+        $('btn-show-profile').classList.add('hidden');
+        $('btn-logout').classList.add('hidden');
+        $('pseudo-connected-banner').classList.add('hidden');
+    }
+}
+
+$('btn-logout').onclick = async () => { await supabaseClient.auth.signOut(); location.reload(); };
+
+// ─────── CRÉATION ET REJOINTURE DE SALLE ───────
+$('btn-open-multi').onclick = () => {
+    if (!state.user) return alert("Connectez-vous d'abord.");
+    $('modal-multi').classList.remove('hidden');
+};
+$('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
+
+$('btn-create-room').onclick = async () => {
+    $('modal-multi').classList.add('hidden');
+    dbg("Création de la salle...");
+    const { data, error } = await supabaseClient.rpc('rpc_create_room', { p_cards_per_player: 6 });
+    if (error) { dbg("Erreur : " + error.message); return alert(error.message); }
+    dbg("Salle créée : " + data.join_code);
+    enterLobby(data.game_id, true, data.join_code);
+};
+
+$('btn-join-room').onclick = async () => {
+    const code = $('join-code-input').value.trim().toUpperCase();
+    if (!code) return;
+    $('modal-multi').classList.add('hidden');
+    dbg("Connexion à la salle " + code);
+    const { data, error } = await supabaseClient.rpc('rpc_join_room', { p_code: code });
+    if (error) { dbg("Erreur : " + error.message); return alert(error.message); }
+    dbg("Salle rejointe : " + data.game_id);
+    enterLobby(data.game_id, false, code);
+};
+
+// ─────── LOBBY D'ATTENTE ───────
+async function enterLobby(gameId, isHost, code) {
+    state.currentGameId = gameId;
+    state.isHost = isHost;
+    $('setup-screen').classList.add('hidden');
+    $('waiting-room').classList.remove('hidden');
+    $('lobby-code').textContent = code;
+    
+    if (isHost) $('btn-host-start').classList.remove('hidden');
+
+    // Écoute des joueurs dans la salle
+    if (state.lobbyChannel) supabaseClient.removeChannel(state.lobbyChannel);
+    state.lobbyChannel = supabaseClient.channel('lobby-' + gameId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: 'game_id=eq.' + gameId }, async () => {
+            const { data: players } = await supabaseClient.from('game_players').select('user_id, seat, profiles(username_display)').eq('game_id', gameId).order('seat');
+            const list = $('lobby-players-list');
+            list.innerHTML = '';
+            players.forEach(p => {
+                list.innerHTML += `<div class="bg-slate-800 p-2 rounded text-sm text-white">${p.profiles.username_display}</div>`;
+            });
+            
+            // Si la partie passe en 'active', on bascule sur le plateau
+            const { data: game } = await supabaseClient.from('games').select('status').eq('id', gameId).single();
+            if (game.status === 'active') {
+                startGameUI(gameId, isHost);
+            }
+        })
+        .subscribe();
+}
+
+$('btn-host-start').onclick = async () => {
+    dbg("Lancement de la partie...");
+    const { error } = await supabaseClient.rpc('rpc_start_game', { p_game_id: state.currentGameId, p_cards_per_player: 6 });
+    if (error) { dbg("Erreur lancement : " + error.message); return alert(error.message); }
+    startGameUI(state.currentGameId, true);
+};
+
+$('btn-leave-lobby').onclick = () => {
+    if (state.lobbyChannel) supabaseClient.removeChannel(state.lobbyChannel);
+    location.reload();
+};
+
+// ─────── PLATEAU DE JEU (Le Serveur gère tout) ───────
+function startGameUI(gameId, isHost) {
+    if (state.lobbyChannel) supabaseClient.removeChannel(state.lobbyChannel);
+    $('waiting-room').classList.add('hidden');
+    $('game-board').classList.remove('hidden');
+    
+    // Écoute du State (les mises à jour du serveur)
+    if (state.gameChannel) supabaseClient.removeChannel(state.gameChannel);
+    state.gameChannel = supabaseClient.channel('game-' + gameId)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId }, payload => {
+            dbg("Mise à jour reçue du serveur");
+            applyServerState(payload.new);
+        })
+        .subscribe();
+        
+    // Charger l'état initial
+    supabaseClient.from('games').select('*').eq('id', gameId).single().then(({ data }) => applyServerState(data));
+}
+
+function applyServerState(dbGame) {
+    if (!dbGame || !dbGame.state_json) return;
+    
+    const gState = dbGame.state_json;
+    const myId = state.user.id;
+    
+    // 1. Mettre à jour l'interface
+    $('hud-turn').textContent = dbGame.current_turn_user_id === myId ? "Vous" : "Adversaire";
+    $('hud-turn').className = dbGame.current_turn_user_id === myId ? "font-black text-emerald-400" : "font-black text-amber-400";
+    $('hud-suit').textContent = gState.activeSuit || 'Libre';
+    
+    // 2. Afficher la défausse
+    const discard = gState.discard;
+    if (discard && discard.length > 0) {
+        const top = discard[discard.length - 1];
+        $('discard-pile-container').innerHTML = renderCardHTML(top, false);
+    }
+
+    // 3. Afficher les adversaires
+    const opps = gState.players.filter(p => p.id !== myId);
+    const oppContainer = $('opponents-container');
+    oppContainer.innerHTML = '';
+    opps.forEach(o => {
+        // On doit récupérer le nom depuis la DB, mais pour simplifier on affiche juste le nombre de cartes
+        oppContainer.innerHTML += `<div class="bg-slate-800 p-2 rounded text-center"><div class="text-xs text-white">Adversaire</div><div class="text-sm font-bold text-amber-400">🎴 ${o.hand.length}</div></div>`;
+    });
+
+    // 4. Afficher ma main
+    const me = gState.players.find(p => p.id === myId);
+    if (!me) return;
+    
+    $('human-cards').textContent = `🎴 ${me.hand.length}`;
+    const handDiv = $('human-hand');
+    handDiv.innerHTML = '';
+    
+    const isMyTurn = (dbGame.current_turn_user_id === myId);
+    $('action-banner').textContent = isMyTurn ? "C'est à vous de jouer !" : "En attente de l'adversaire...";
+    
+    me.hand.forEach((card, idx) => {
+        const playable = isMyTurn; // Le serveur re-vérifiera de toute façon
+        const el = document.createElement('div');
+        el.innerHTML = renderCardHTML(card, playable);
+        const cardEl = el.firstElementChild;
+        if (!playable) cardEl.classList.add('not-playable');
+        
+        cardEl.onclick = async () => {
+            if (!isMyTurn) return;
+            dbg("Joue la carte index " + idx);
+            const { error } = await supabaseClient.rpc('rpc_play_card', { p_game_id: state.currentGameId, p_card_index: idx });
+            if (error) dbg("Coup invalide : " + error.message);
+        };
+        handDiv.appendChild(cardEl);
+    });
+
+    // 5. Vérifier si on doit choisir une couleur (Pouvoir du 8)
+    if (gState.activeSuit === 'pending_choice') {
+        $('modal-suit-picker').classList.remove('hidden');
+    }
+}
+
+function renderCardHTML(card, isPlayable) {
+    const c = card.isRed ? 'red-suit' : 'black-suit';
+    const p = isPlayable ? 'playable' : '';
+    return `<div class="playing-card ${p} ${c} flex flex-col justify-between p-1 bg-white"><div class="text-[10px] font-black">${card.value}<br>${card.suit}</div><div class="text-center font-black text-xl my-auto">${card.suit}</div><div class="text-[10px] font-black transform rotate-180">${card.value}<br>${card.suit}</div></div>`;
+}
+
+// Bouton Piocher
+$('btn-draw').onclick = async () => {
+    dbg("Demande de pioche");
+    const { error } = await supabaseClient.rpc('rpc_draw_card', { p_game_id: state.currentGameId });
+    if (error) dbg("Erreur pioche : " + error.message);
+};
+
+// Choix de la couleur (Pouvoir du 8)
+document.querySelectorAll('.suit-btn').forEach(btn => {
+    btn.onclick = async (e) => {
+        const suit = e.target.getAttribute('data-suit');
+        $('modal-suit-picker').classList.add('hidden');
+        dbg("Choix de la couleur : " + suit);
+        await supabaseClient.rpc('rpc_choose_suit', { p_game_id: state.currentGameId, p_suit: suit });
+    };
+});
+
+// Quitter
+$('btn-leave-game').onclick = () => {
+    if (state.gameChannel) supabaseClient.removeChannel(state.gameChannel);
+    location.reload();
+};
+
+// Mode Solo (Simulé localement avec l'ancien moteur pour le moment)
+$('btn-start-solo').onclick = () => {
+    alert("Le mode Solo sera reconnecté dans la prochaine mise à jour. Concentrons-nous sur le multijoueur !");
+};
+
+// Init
+checkAuth();
+</script>
+</body>
+</html>
