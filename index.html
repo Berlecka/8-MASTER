@@ -119,7 +119,7 @@ body.light-theme .black-suit { color: #0f172a; }
             <label for="player-name-input" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Pseudo en jeu</label>
             <div class="relative">
                 <i class="fa-solid fa-user-astronaut absolute left-3.5 top-3.5 text-slate-500"></i>
-                <input type="text" id="player-name-input" maxlength="20" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition" placeholder="Connectez-vous...">
+                <input type="text" id="player-name-input" maxlength="20" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white text-sm font-bold focus:outline-none focus:border-amber-400 transition" placeholder="Votre pseudo...">
             </div>
         </div>
         <div class="space-y-4 text-left">
@@ -641,10 +641,10 @@ async function checkAuth() {
             $('btn-open-auth').classList.remove('hidden'); $('btn-show-profile').classList.add('hidden'); $('btn-show-profile').classList.remove('flex');
             $('btn-logout').classList.add('hidden'); $('btn-logout').classList.remove('flex');
             
-            if (nameInput) {
+            if (nameInput && !nameInput.value) {
                 nameInput.value = '';
                 nameInput.disabled = false;
-                nameInput.placeholder = 'Connectez-vous...';
+                nameInput.placeholder = 'Votre pseudo...';
                 nameInput.classList.remove('opacity-70', 'cursor-not-allowed', 'bg-slate-900');
             }
         }
@@ -947,7 +947,6 @@ async function attachToGame(gameId, isHost) {
             payload => { if (payload.new.state_json) applyMultiState(payload.new.state_json); })
         .subscribe();
 
-    // Polling optimisé à 800ms pour une fluidité et réactivité instantanée
     if (multiPollInterval) clearInterval(multiPollInterval);
     multiPollInterval = setInterval(async () => {
         const { data } = await supabaseClient.from('games').select('state_json').eq('id', gameId).single();
@@ -1017,7 +1016,6 @@ window._invitePlayer = async (userId, name) => {
     await enterMultiplayer('invite', { inviteeId: userId, inviteeName: name });
 };
 
-/* ACTIONS HUMAINES EN MULTIJOUEUR (SYNCHRONISATION DIRECTE) */
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
@@ -1102,6 +1100,7 @@ async function executeAiTurn(bot) {
     if (result.events.find(e => e.type === 'ROUND_ENDED')) { const re = result.events.find(e => e.type === 'ROUND_ENDED'); showRoundEndModal(re.summary, re.winnerId); return; }
     scheduleNextTurn();
 }
+
 function openCardCountModal(maxCards, callback) {
     const range = $('card-count-modal-range');
     range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
@@ -1113,6 +1112,7 @@ function openCardCountModal(maxCards, callback) {
     newBtn.addEventListener('click', () => { $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
     $('modal-card-count').classList.remove('hidden');
 }
+
 function prepareNextRound() {
     if (!game || state.roundProcessing) return;
     state.roundProcessing = true;
@@ -1130,6 +1130,7 @@ function prepareNextRound() {
         startRoundImmediate();
     }
 }
+
 function startRoundImmediate() {
     state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
@@ -1140,6 +1141,7 @@ function startRoundImmediate() {
     processEvents(effectEvents);
     setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 400);
 }
+
 function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.lastRoundSummary = summary; game.lastWinnerId = winnerId; saveGameState();
@@ -1154,6 +1156,7 @@ function showRoundEndModal(summary, winnerId) {
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
     updateUI();
 }
+
 function showGameOverModal() {
     const ranking = Engine8Master.buildRanking(game), winner = ranking.find(r => !r.eliminated) || ranking[0], humanWon = winner && winner.isHuman;
     saveGameResult(winner);
@@ -1165,6 +1168,7 @@ function showGameOverModal() {
     $('modal-game-over').classList.remove('hidden');
     if (humanWon) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
 }
+
 function launchConfetti() {
     for (let i = 0; i < 40; i++) {
         const c = document.createElement('div'); c.className = 'confetti';
@@ -1172,9 +1176,9 @@ function launchConfetti() {
         document.body.appendChild(c); setTimeout(() => c.remove(), 3500);
     }
 }
+
 function startGameSession() {
-    if (!state.user) { alert("Connectez-vous."); return; }
-    const rawName = $('player-name-input').value.trim() || 'Invité';
+    const rawName = $('player-name-input').value.trim() || (state.user?.user_metadata?.username) || 'Joueur';
     state.aiDifficulty = $('ai-difficulty-select').value;
     const players = [{ id: 0, name: rawName, isHuman: true }];
     for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
@@ -1183,6 +1187,7 @@ function startGameSession() {
     $('setup-screen').classList.add('hidden'); $('game-board').classList.remove('hidden');
     prepareNextRound();
 }
+
 function returnToSetup() {
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
@@ -1214,8 +1219,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $('login-form').onsubmit = handleLoginSubmit;
     $('btn-show-profile').onclick = showProfile;
     $('btn-close-profile').onclick = () => $('modal-profile').classList.add('hidden');
-    ['auth-username', 'auth-whatsapp', 'auth-password', 'auth-password-confirm'].forEach(id => $(id).addEventListener('input', validateAuthForm));
-    $('auth-country').addEventListener('change', (e) => {
+    ['auth-username', 'auth-whatsapp', 'auth-password', 'auth-password-confirm'].forEach(id => $(id)?.addEventListener('input', validateAuthForm));
+    $('auth-country')?.addEventListener('change', (e) => {
         const [, len] = e.target.value.split('|'); currentPhoneLength = parseInt(len);
         $('auth-whatsapp').maxLength = currentPhoneLength; $('auth-whatsapp').value = '';
         $('auth-whatsapp').classList.remove('border-emerald-500', 'text-emerald-400'); $('auth-whatsapp').classList.add('border-slate-800');
@@ -1236,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.ai-count-btn').forEach(btn => { btn.onclick = (e) => { document.querySelectorAll('.ai-count-btn').forEach(b => b.className = "ai-count-btn bg-slate-900 border border-slate-800 rounded-xl py-2 font-bold text-xs"); e.target.className = "ai-count-btn bg-amber-500 border border-amber-400 text-slate-950 rounded-xl py-2 font-black text-xs"; state.aiCount = parseInt(e.target.getAttribute('data-count')); Storage.save(); }; });
     $('ai-difficulty-select').addEventListener('change', (e) => { state.aiDifficulty = e.target.value; Storage.save(); });
     $('btn-start-game-final').onclick = startGameSession;
-    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
+    $('btn-open-multi').onclick = () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi').classList.remove('hidden'); };
     $('btn-close-multi').onclick = () => $('modal-multi').classList.add('hidden');
     $('btn-show-directory').onclick = openDirectory;
     $('btn-close-directory').onclick = () => $('modal-directory').classList.add('hidden');
