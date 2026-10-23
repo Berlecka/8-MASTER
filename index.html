@@ -400,10 +400,34 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
+<!-- PANNEAU FIN DE MANCHE (AVEC DONNEUR & COMPTEUR) -->
 <div id="board-winner-panel" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-40 hidden modal-entry">
-    <h3 id="board-winner-title" class="text-lg font-black text-amber-400 mb-2">Victoire !</h3>
-    <div id="board-summary-list" class="space-y-1.5 text-left bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-4 text-xs w-full max-w-sm max-h-[220px] overflow-y-auto"></div>
-    <button id="btn-board-next-round" class="w-full max-w-sm bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black py-3 rounded-xl text-xs">Manche Suivante</button>
+    <h3 id="board-winner-title" class="text-lg font-black text-amber-400 mb-1">Victoire !</h3>
+    <div id="dealer-info-box" class="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-xl mb-3 text-center"></div>
+    <div id="board-summary-list" class="space-y-1.5 text-left bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-3 text-xs w-full max-w-sm max-h-[180px] overflow-y-auto"></div>
+    
+    <!-- Contrôles spécifiques au donneur (Joueur au score le plus élevé) -->
+    <div id="dealer-controls" class="w-full max-w-sm space-y-3 hidden">
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-center">
+            <span class="text-[11px] font-bold text-slate-400 block mb-1">C'est à vous de choisir les cartes (<span id="dealer-cards-disp">6</span>) :</span>
+            <input type="range" id="dealer-cards-slider" min="3" max="8" value="6" class="w-full cursor-pointer">
+        </div>
+        <div class="flex gap-2">
+            <button id="btn-dealer-quit" class="flex-1 bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl text-xs transition">Quitter la partie</button>
+            <button id="btn-dealer-next" class="flex-[2] bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-1.5">
+                <span>Manche Suivante</span>
+                <span id="round-timer-badge" class="bg-slate-950/30 px-2 py-0.5 rounded-full text-[10px]">10s</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Attente pour les autres joueurs -->
+    <div id="waiting-dealer-box" class="w-full max-w-sm space-y-2 text-center hidden">
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-xs text-slate-300 font-bold animate-pulse">
+            <i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> En attente du choix du donneur...
+        </div>
+        <button id="btn-waiting-quit" class="w-full bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2 rounded-xl text-xs transition">Quitter la partie</button>
+    </div>
 </div>
 
 <div id="modal-game-over" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
@@ -447,6 +471,7 @@ let multiStateChannel = null;
 let multiPlayersChannel = null;
 let multiSearchPollInterval = null;
 let multiIsHost = false;
+let roundTimerInterval = null;
 
 function $(id) { return document.getElementById(id); }
 function getSpeedLevel(key) { return SPEED_LEVELS.find(s => s.key === key) || SPEED_LEVELS[2]; }
@@ -550,6 +575,21 @@ function showEffectBanner(text) {
     const banner = document.createElement('div'); banner.className = 'effect-banner'; banner.textContent = text;
     zone.prepend(banner);
     setTimeout(() => { banner.style.cssText='opacity:0;transform:translateX(-15px) scale(0.85);transition:0.15s;'; setTimeout(() => banner.remove(), 150); }, state.bubbleDurationMs);
+}
+
+function getPlayerRect(playerId) {
+    if (!game) return null;
+    const myUser = state.user?.id;
+    if (playerId === myUser || playerId === 0) {
+        return $('human-hand')?.getBoundingClientRect() || null;
+    }
+    const opponents = game.players.filter(p => p.id !== myUser && p.id !== 0);
+    const idx = opponents.findIndex(p => p.id === playerId);
+    if (idx !== -1) {
+        const box = $('opponents-container')?.children[idx];
+        return box ? box.getBoundingClientRect() : null;
+    }
+    return null;
 }
 
 function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
@@ -1005,13 +1045,13 @@ async function attachToGame(gameId, isHost) {
     if (multiStateChannel) supabaseClient.removeChannel(multiStateChannel);
     multiStateChannel = supabaseClient.channel('multi-state-' + gameId)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
-            payload => { 
+            async payload => { 
                 if (payload.new.status === 'cancelled' || payload.new.status === 'abandoned') {
-                    showEffectBanner('⚠️ L\'autre joueur a quitté la partie');
+                    showEffectBanner('⚠️ Un joueur a quitté la partie');
                     setTimeout(() => leaveMultiplayer(), 1000);
                     return;
                 }
-                if (payload.new.state_json) applyMultiState(payload.new.state_json); 
+                if (payload.new.state_json) await applyMultiState(payload.new.state_json); 
             })
         .subscribe();
 }
@@ -1024,15 +1064,57 @@ async function pushInitialState(gameId) {
     Engine8Master.startRound(initial);
     const firstTurnEngineId = initial.players[initial.currentPlayerIdx].id;
     await supabaseClient.rpc('rpc_push_state', { p_game_id: gameId, p_new_state: initial, p_current_turn_user_id: firstTurnEngineId });
-    applyMultiState(initial);
+    await applyMultiState(initial);
 }
 
-function applyMultiState(remoteState) {
+let lastDiscardTopCard = null;
+let lastDeckCount = null;
+
+async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
     const wasMyTurn = state.isHumanTurn;
+    const previousGame = game;
     game = remoteState;
     const myUserId = state.user?.id;
     game.players.forEach(p => { p.isHuman = (p.id === myUserId); });
+
+    const newTop = Engine8Master.topDiscard(game);
+    const deckRect = $('deck-pile')?.getBoundingClientRect();
+    const discardRect = $('discard-pile-container')?.getBoundingClientRect();
+
+    if (previousGame && state.animationsEnabled && deckRect && discardRect) {
+        if (newTop && (!lastDiscardTopCard || lastDiscardTopCard.suit !== newTop.suit || lastDiscardTopCard.value !== newTop.value)) {
+            const lastPlayerIdx = (game.currentPlayerIdx - game.direction + game.players.length) % game.players.length;
+            const lastPlayer = game.players[lastPlayerIdx];
+            if (lastPlayer && lastPlayer.id !== myUserId) {
+                const fromR = getPlayerRect(lastPlayer.id);
+                if (fromR) {
+                    state.isAnimating = true;
+                    await animateFlight(fromR, discardRect, newTop, false);
+                    state.isAnimating = false;
+                }
+            }
+        }
+        if (lastDeckCount !== null && game.deck.length < lastDeckCount) {
+            const drawCount = lastDeckCount - game.deck.length;
+            const lastPlayer = game.players[game.currentPlayerIdx];
+            if (lastPlayer) {
+                const toR = getPlayerRect(lastPlayer.id);
+                if (toR) {
+                    state.isAnimating = true;
+                    for (let i = 0; i < drawCount; i++) {
+                        const isMe = (lastPlayer.id === myUserId);
+                        const drawnCardData = isMe ? lastPlayer.hand[lastPlayer.hand.length - 1] : null;
+                        await animateFlight(deckRect, toR, drawnCardData, !isMe);
+                    }
+                    state.isAnimating = false;
+                }
+            }
+        }
+    }
+
+    lastDiscardTopCard = newTop;
+    lastDeckCount = game.deck ? game.deck.length : null;
 
     if (game.gameOver) {
         updateUI();
@@ -1055,7 +1137,6 @@ function applyMultiState(remoteState) {
     const isMyTurnNow = (currentEngineId === myUserId);
     state.isHumanTurn = isMyTurnNow;
     state.isAiThinking = false;
-    state.isAnimating = false;
     updateUI();
 
     if (isMyTurnNow && !wasMyTurn) {
@@ -1078,6 +1159,7 @@ async function leaveMultiplayer() {
     if (multiPlayersChannel) { supabaseClient.removeChannel(multiPlayersChannel); multiPlayersChannel = null; }
     if (multiSearchPollInterval) { clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
     if (window.lobbyPollInterval) { clearInterval(window.lobbyPollInterval); window.lobbyPollInterval = null; }
+    if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
     
     currentMultiGameId = null;
     localStorage.removeItem('8master-active-multi-game-id');
@@ -1136,7 +1218,7 @@ async function handleHumanPlay(idx) {
             p_finished: game.gameOver,
             p_winner_user_id: game.gameOver ? human.id : null
         });
-        applyMultiState(game);
+        await applyMultiState(game);
         if (roundEndEvent) {
             showRoundEndModal(roundEndEvent.summary, roundEndEvent.winnerId);
         }
@@ -1154,8 +1236,16 @@ async function handleHumanDraw() {
     const human = humanPlayer();
     state.isAnimating = true; state.isHumanTurn = false;
 
+    const fromR = $('deck-pile')?.getBoundingClientRect();
+    const toR = $('human-hand')?.getBoundingClientRect();
+
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
+
+    if (fromR && toR && state.animationsEnabled) {
+        const drawnCard = human.hand[human.hand.length - 1];
+        await animateFlight(fromR, toR, drawnCard, false);
+    }
 
     updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
     state.isAnimating = false;
@@ -1169,7 +1259,7 @@ async function handleHumanDraw() {
             p_new_state: game,
             p_current_turn_user_id: next ? next.id : null
         });
-        applyMultiState(game);
+        await applyMultiState(game);
         if (roundEndEvent) {
             showRoundEndModal(roundEndEvent.summary, roundEndEvent.winnerId);
         }
@@ -1184,7 +1274,12 @@ async function executeAiTurn(bot) {
     if (!game || game.roundEnded || game.gameOver || game.players[game.currentPlayerIdx]?.id !== bot.id) return;
     const playable = Engine8Master.getPlayableCards(game, bot.id);
     if (playable.length === 0) {
+        const fromR = $('deck-pile')?.getBoundingClientRect();
+        const toR = botMiniRect(bot);
         const result = Engine8Master.drawCard(game, bot.id);
+        if (fromR && toR && state.animationsEnabled) {
+            await animateFlight(fromR, toR, null, true);
+        }
         updateUI(); await processEvents(result.events.filter(e => e.type !== 'ROUND_ENDED'));
         const roundEndEvent = result.events.find(e => e.type === 'ROUND_ENDED');
         if (roundEndEvent) { showRoundEndModal(roundEndEvent.summary, roundEndEvent.winnerId); return; }
@@ -1204,41 +1299,16 @@ async function executeAiTurn(bot) {
     scheduleNextTurn();
 }
 
-function openCardCountModal(maxCards, callback) {
-    const range = $('card-count-modal-range');
-    if (!range) { callback(6); return; }
-    range.min = CONFIG.MIN_CARDS_PER_DECK; range.max = maxCards;
-    let chosen = Math.min(6, maxCards); range.value = chosen;
-    if ($('card-count-modal-display')) $('card-count-modal-display').innerText = chosen;
-    const newRange = range.cloneNode(true); range.parentNode.replaceChild(newRange, range);
-    newRange.addEventListener('input', (e) => { chosen = parseInt(e.target.value, 10); if ($('card-count-modal-display')) $('card-count-modal-display').innerText = chosen; });
-    const btn = $('btn-confirm-card-count');
-    if (btn) {
-        const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', () => { if ($('modal-card-count')) $('modal-card-count').classList.add('hidden'); AudioFX.play('click'); callback(chosen); });
-    }
-    if ($('modal-card-count')) $('modal-card-count').classList.remove('hidden');
-}
-
-function prepareNextRound() {
+async function prepareNextRound(customCards) {
     if (!game || state.roundProcessing) return;
     state.roundProcessing = true;
-    if (game.roundNumber === 0) { game.config.cardsPerPlayer = state.cardsPerPlayer; startRoundImmediate(); return; }
-    const active = game.players.filter(p => !p.eliminated);
-    const maxScore = Math.max(...active.map(p => game.scores[p.id]));
-    const candidates = active.filter(p => game.scores[p.id] === maxScore);
-    const dealer = candidates[Math.floor(Math.random() * candidates.length)];
-    const human = humanPlayer();
-    if (dealer && dealer.isHuman && !currentMultiGameId) {
-        openCardCountModal(game.config.maxCards, (chosen) => { game.config.cardsPerPlayer = chosen; startRoundImmediate(); });
-    } else {
-        const maxCards = game.config.maxCards;
-        game.config.cardsPerPlayer = CONFIG.MIN_CARDS_PER_DECK + Math.floor(Math.random() * (maxCards - CONFIG.MIN_CARDS_PER_DECK + 1));
-        startRoundImmediate();
+    if (customCards) {
+        game.config.cardsPerPlayer = parseInt(customCards, 10);
     }
+    await startRoundImmediate();
 }
 
-function startRoundImmediate() {
+async function startRoundImmediate() {
     state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
     if (!result.valid) { if (game.gameOver) showGameOverModal(); return; }
@@ -1246,7 +1316,18 @@ function startRoundImmediate() {
     updateUI();
     const effectEvents = result.events.filter(e => !['DEAL_HAND', 'STARTING_CARD', 'TURN_CHANGED'].includes(e.type));
     processEvents(effectEvents);
-    setTimeout(() => { if (currentMultiGameId) applyMultiState(game); else scheduleNextTurn(); }, 50);
+
+    if (currentMultiGameId) {
+        const next = game.players[game.currentPlayerIdx];
+        await supabaseClient.rpc('rpc_push_state', {
+            p_game_id: currentMultiGameId,
+            p_new_state: game,
+            p_current_turn_user_id: next ? next.id : null
+        });
+        await applyMultiState(game);
+    } else {
+        setTimeout(() => scheduleNextTurn(), 50);
+    }
 }
 
 async function showRoundEndModal(summary, winnerId) {
@@ -1255,14 +1336,64 @@ async function showRoundEndModal(summary, winnerId) {
     game.lastRoundSummary = summary; 
     game.lastWinnerId = winnerId; 
     saveGameState();
+
+    // Détermination du joueur avec le score le plus élevé (le donneur)
+    let maxScore = -1;
+    let dealerPlayerId = null;
+    game.players.forEach(p => {
+        const sc = game.scores[p.id] || 0;
+        if (sc > maxScore) {
+            maxScore = sc;
+            dealerPlayerId = p.id;
+        }
+    });
+
+    const myUserId = state.user?.id;
+    const human = humanPlayer();
+    const isDealerMe = currentMultiGameId ? (dealerPlayerId === myUserId) : (dealerPlayerId === human?.id);
+    const dealerName = getPlayerName(dealerPlayerId);
+
     let html = '';
     if (summary.bonuses && summary.bonuses.length) summary.bonuses.forEach(b => { html += `<div class="flex justify-between text-amber-400 font-bold"><span>${escapeHtml(getPlayerName(b.playerId))} — ${b.type}</span><span>${b.amount} pts</span></div>`; });
     else html += `<div class="flex justify-between text-emerald-400 font-bold"><span>🏆 ${escapeHtml(getPlayerName(winnerId))}</span><span>0 pt</span></div>`;
-    if (summary.penalties) summary.penalties.forEach(p => { html += `<div class="flex justify-between text-slate-300"><span>${escapeHtml(getPlayerName(p.playerId))}</span><span class="text-red-400">+${p.amount} pts</span></div>`; });
+    if (summary.penalties) summary.penalties.forEach(p => { html += `<div class="flex justify-between text-slate-300"><span>${escapeHtml(p.playerId ? getPlayerName(p.playerId) : p.name)}</span><span class="text-red-400">+${p.amount} pts</span></div>`; });
+    
     if ($('board-winner-title')) $('board-winner-title').innerText = `Victoire de ${escapeHtml(getPlayerName(winnerId))} !`;
+    if ($('dealer-info-box')) $('dealer-info-box').innerHTML = `<i class="fa-solid fa-crown mr-1"></i> ${escapeHtml(dealerName)} a le plus de points (${maxScore} pts) et devient le <b>donneur</b> !`;
     if ($('board-summary-list')) $('board-summary-list').innerHTML = html;
+
+    const dealerControls = $('dealer-controls');
+    const waitingDealerBox = $('waiting-dealer-box');
+
+    if (dealerControls && waitingDealerBox) {
+        if (isDealerMe || (!currentMultiGameId && human && dealerPlayerId === human.id)) {
+            dealerControls.classList.remove('hidden');
+            waitingDealerBox.classList.add('hidden');
+            
+            // Compte à rebours de 10 secondes pour le donneur
+            let timeLeft = 10;
+            const timerBadge = $('round-timer-badge');
+            if (timerBadge) timerBadge.textContent = `${timeLeft}s`;
+            if (roundTimerInterval) clearInterval(roundTimerInterval);
+            roundTimerInterval = setInterval(async () => {
+                timeLeft--;
+                if (timerBadge) timerBadge.textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(roundTimerInterval);
+                    // Lancement automatique avec la valeur actuelle du slider
+                    const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
+                    $('board-winner-panel')?.classList.add('hidden');
+                    await prepareNextRound(chosenCards);
+                }
+            }, 1000);
+
+        } else {
+            dealerControls.classList.add('hidden');
+            waitingDealerBox.classList.remove('hidden');
+        }
+    }
+
     if ($('board-winner-panel')) $('board-winner-panel').classList.remove('hidden');
-    const human = humanPlayer();
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
     updateUI();
 
@@ -1308,12 +1439,13 @@ function startGameSession() {
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
     if ($('setup-screen')) $('setup-screen').classList.add('hidden');
     if ($('game-board')) $('game-board').classList.remove('hidden');
-    prepareNextRound();
+    prepareNextRound(state.cardsPerPlayer);
 }
 
 function returnToSetup() {
     game = null;
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    if (roundTimerInterval) clearInterval(roundTimerInterval);
     localStorage.removeItem('8master-active-game');
     localStorage.removeItem('8master-active-multi-game-id');
     ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','modal-directory','modal-invite-received','private-room-overlay','multi-search-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
@@ -1437,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         p_new_state: game,
                         p_current_turn_user_id: next ? next.id : null
                     });
-                    applyMultiState(game);
+                    await applyMultiState(game);
                     return;
                 }
             }
@@ -1445,14 +1577,21 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    bindClick('btn-board-next-round', () => { 
-        $('board-winner-panel')?.classList.add('hidden'); 
-        if (currentMultiGameId) {
-            if (multiIsHost) prepareNextRound();
-        } else {
-            prepareNextRound();
-        }
+    bindInput('dealer-cards-slider', (e) => {
+        const val = e.target.value;
+        if ($('dealer-cards-disp')) $('dealer-cards-disptextContent = val;
     });
+
+    bindClick('btn-dealer-next', async () => {
+        if (roundTimerInterval) clearInterval(roundTimerInterval);
+        $('board-winner-panel')?.classList.add('hidden');
+        const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
+        await prepareNextRound(chosenCards);
+    });
+
+    bindClick('btn-dealer-quit', leaveMultiplayer);
+    bindClick('btn-waiting-quit', leaveMultiplayer);
+
     bindClick('btn-new-game', () => { if (currentMultiGameId) leaveMultiplayer(); else returnToSetup(); });
 
     checkAuth().finally(async () => {
