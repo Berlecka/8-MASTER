@@ -1120,11 +1120,14 @@ async function applyMultiState(remoteState) {
     const discardRect = $('discard-pile-container')?.getBoundingClientRect();
 
     if (previousGame && state.animationsEnabled && deckRect && discardRect) {
-        // 1. DÉPÔT : Toujours FACE DÉCOUVERTE pour n'importe quel joueur vers la défausse
+        // Détermine qui vient de jouer le dernier coup
+        const lastPlayerIdx = (game.currentPlayerIdx - game.direction + game.players.length) % game.players.length;
+        const lastPlayer = game.players[lastPlayerIdx];
+        const isMeLastPlayer = lastPlayer && lastPlayer.id === myUserId;
+
+        // 1. DÉPÔT : Toujours FACE DÉCOUVERTE, mais SEULEMENT si c'est un AUTRE joueur (évite le double effet pour toi)
         if (newTop && (!lastDiscardTopCard || lastDiscardTopCard.suit !== newTop.suit || lastDiscardTopCard.value !== newTop.value)) {
-            const lastPlayerIdx = (game.currentPlayerIdx - game.direction + game.players.length) % game.players.length;
-            const lastPlayer = game.players[lastPlayerIdx];
-            if (lastPlayer) {
+            if (lastPlayer && !isMeLastPlayer) {
                 const fromR = getPlayerRect(lastPlayer.id);
                 if (fromR) {
                     state.isAnimating = true;
@@ -1133,11 +1136,12 @@ async function applyMultiState(remoteState) {
                 }
             }
         }
-        // 2. PIOCHE NORMALE : Toujours FACE CACHÉE du Talon vers le joueur qui pioche
+        // 2. PIOCHE NORMALE : Toujours FACE CACHÉE, mais SEULEMENT si c'est un AUTRE joueur
         if (lastDeckCount !== null && game.deck.length < lastDeckCount) {
             const drawCount = lastDeckCount - game.deck.length;
             const receiverPlayer = game.players[game.currentPlayerIdx];
-            if (receiverPlayer && drawCount === 1) {
+            const isMeReceiver = receiverPlayer && receiverPlayer.id === myUserId;
+            if (receiverPlayer && drawCount === 1 && !isMeReceiver) {
                 const toR = getPlayerRect(receiverPlayer.id);
                 if (toR) {
                     state.isAnimating = true;
