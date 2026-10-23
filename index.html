@@ -363,38 +363,40 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </div>
 
-<!-- PANNEAU FIN DE MANCHE -->
-<div id="board-winner-panel" class="absolute inset-2 sm:inset-4 bg-slate-950/95 backdrop-blur-md rounded-2xl border border-amber-500/40 flex flex-col items-center justify-center p-4 z-40 hidden modal-entry">
-    <h3 id="board-winner-title" class="text-lg font-black text-amber-400 mb-1">Victoire !</h3>
-    <div id="dealer-info-box" class="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-xl mb-3 text-center"></div>
-    <div id="board-summary-list" class="space-y-1.5 text-left bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-3 text-xs w-full max-w-sm max-h-[180px] overflow-y-auto"></div>
-    
-    <!-- Contrôles spécifiques au Solo -->
-    <div id="solo-controls" class="w-full max-w-sm space-y-2 hidden">
-        <button id="btn-solo-next-round" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition shadow-lg">Manche Suivante</button>
-    </div>
+<!-- PANNEAU POP-UP FIN DE MANCHE (RECURATIF SUR LA TABLE) -->
+<div id="board-winner-panel" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl modal-entry">
+        <h3 id="board-winner-title" class="text-xl font-black text-amber-400 mb-1">Victoire !</h3>
+        <div id="dealer-info-box" class="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-xl mb-3 text-center"></div>
+        <div id="board-summary-list" class="space-y-1.5 text-left bg-slate-950/60 p-3 rounded-xl border border-slate-800 mb-4 text-xs w-full max-h-[180px] overflow-y-auto"></div>
+        
+        <!-- Contrôles spécifiques au Solo -->
+        <div id="solo-controls" class="w-full space-y-2 hidden">
+            <button id="btn-solo-next-round" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition shadow-lg">Manche Suivante</button>
+        </div>
 
-    <!-- Contrôles spécifiques au Donneur en Multijoueur -->
-    <div id="dealer-controls" class="w-full max-w-sm space-y-3 hidden">
-        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-center">
-            <span class="text-[11px] font-bold text-slate-400 block mb-1">C'est à vous de distribuer (<span id="dealer-cards-disp">6</span> cartes) :</span>
-            <input type="range" id="dealer-cards-slider" min="3" max="8" value="6" class="w-full cursor-pointer">
+        <!-- Contrôles spécifiques au Donneur en Multijoueur -->
+        <div id="dealer-controls" class="w-full space-y-3 hidden">
+            <div class="bg-slate-950/80 border border-slate-800 p-3 rounded-xl text-center">
+                <span class="text-[11px] font-bold text-slate-400 block mb-1">C'est à vous de distribuer (<span id="dealer-cards-disp">6</span> cartes) :</span>
+                <input type="range" id="dealer-cards-slider" min="3" max="8" value="6" class="w-full cursor-pointer">
+            </div>
+            <div class="flex gap-2">
+                <button id="btn-dealer-quit" class="flex-1 bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl text-xs transition">Quitter</button>
+                <button id="btn-dealer-next" class="flex-[2] bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-1.5">
+                    <span>Manche Suivante</span>
+                    <span id="round-timer-badge" class="bg-slate-950/30 px-2 py-0.5 rounded-full text-[10px]">10s</span>
+                </button>
+            </div>
         </div>
-        <div class="flex gap-2">
-            <button id="btn-dealer-quit" class="flex-1 bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2.5 rounded-xl text-xs transition">Quitter</button>
-            <button id="btn-dealer-next" class="flex-[2] bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-1.5">
-                <span>Manche Suivante</span>
-                <span id="round-timer-badge" class="bg-slate-950/30 px-2 py-0.5 rounded-full text-[10px]">10s</span>
-            </button>
-        </div>
-    </div>
 
-    <!-- Attente pour les autres joueurs en Multijoueur -->
-    <div id="waiting-dealer-box" class="w-full max-w-sm space-y-2 text-center hidden">
-        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-xs text-slate-300 font-bold animate-pulse">
-            <i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> En attente du choix du donneur...
+        <!-- Attente pour les autres joueurs en Multijoueur -->
+        <div id="waiting-dealer-box" class="w-full space-y-2 text-center hidden">
+            <div class="bg-slate-950/80 border border-slate-800 p-3 rounded-xl text-xs text-slate-300 font-bold animate-pulse">
+                <i class="fa-solid fa-hourglass-half text-amber-400 mr-1"></i> En attente du choix du donneur...
+            </div>
+            <button id="btn-waiting-quit" class="w-full bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2 rounded-xl text-xs transition">Quitter la partie</button>
         </div>
-        <button id="btn-waiting-quit" class="w-full bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-500/30 font-bold py-2 rounded-xl text-xs transition">Quitter la partie</button>
     </div>
 </div>
 
@@ -1333,6 +1335,14 @@ async function showRoundEndModal(summary, winnerId) {
     game.lastWinnerId = winnerId; 
     state.isAnimating = false;
     state.isAiThinking = false;
+
+    // 🎯 Préparation discrète de la manche suivante en arrière-plan
+    const chosenCards = parseInt($('dealer-cards-slider')?.value || state.cardsPerPlayer || 6, 10);
+    if (!currentMultiGameId) {
+        Engine8Master.startRound(game);
+        updateUI();
+    }
+
     saveGameState();
 
     if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
@@ -1351,7 +1361,7 @@ async function showRoundEndModal(summary, winnerId) {
     const waitingDealerBox = $('waiting-dealer-box');
 
     if (!currentMultiGameId) {
-        if ($('dealer-info-box')) $('dealer-info-box').innerHTML = `<i class="fa-solid fa-trophy mr-1"></i> Fin de la manche ${game.roundNumber || 1}`;
+        if ($('dealer-info-box')) $('dealer-info-box').innerHTML = `<i class="fa-solid fa-trophy mr-1"></i> Récapitulatif de la manche`;
         if (soloControls) soloControls.classList.remove('hidden');
         if (dealerControls) dealerControls.classList.add('hidden');
         if (waitingDealerBox) waitingDealerBox.classList.add('hidden');
@@ -1388,10 +1398,10 @@ async function showRoundEndModal(summary, winnerId) {
                     if (timeLeft <= 0) {
                         clearInterval(roundTimerInterval);
                         roundTimerInterval = null;
-                        const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
+                        const cardsVal = parseInt($('dealer-cards-slider')?.value || 6, 10);
                         $('board-winner-panel')?.classList.add('hidden');
                         game.roundEnded = false;
-                        await prepareNextRound(chosenCards);
+                        await prepareNextRound(cardsVal);
                     }
                 }, 1000);
             } else {
@@ -1403,7 +1413,6 @@ async function showRoundEndModal(summary, winnerId) {
 
     if ($('board-winner-panel')) $('board-winner-panel').classList.remove('hidden');
     if (human && winnerId === human.id) { AudioFX.play('win'); launchConfetti(); } else AudioFX.play('lose');
-    updateUI();
 
     if (currentMultiGameId && multiIsHost) {
         try {
@@ -1588,7 +1597,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     bindClick('btn-solo-next-round', async () => {
         $('board-winner-panel')?.classList.add('hidden');
-        await prepareNextRound(state.cardsPerPlayer);
+        game.roundEnded = false;
+        scheduleNextTurn();
     });
 
     bindClick('btn-dealer-next', async () => {
