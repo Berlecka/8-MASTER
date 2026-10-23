@@ -428,7 +428,7 @@ const SPEED_LEVELS = [ { key: 'slow', icon: '🐢', label: '1.2s', ms: 1200 }, {
 const state = {
     deckColor: 'red', numDecks: 1, cardsPerPlayer: 6, aiCount: 2, aiDifficulty: 'medium', botSpeed: 'fast',
     soundEnabled: true, theme: 'dark', animationsEnabled: true, flightDurationMs: 400, bubbleDurationMs: 1200,
-    isHumanTurn: false, isAiThinking: false, isAnimating: false, roundProcessing: false, pendingDiscardAnimation: false, needsSuitChoice: false,
+    isHumanTurn: false, isAiThinking: false, isAnimating: false, pendingDiscardAnimation: false, needsSuitChoice: false,
     user: null, tempUserData: {}
 };
 let game = null;
@@ -565,6 +565,14 @@ function getPlayerRect(playerId) {
         return box ? box.getBoundingClientRect() : null;
     }
     return null;
+}
+
+function botMiniRect(bot) { 
+    if (!game) return null; 
+    const idx = game.players.filter(p => !p.isHuman).findIndex(p => p.id === bot.id); 
+    const box = $('opponents-container')?.querySelectorAll(':scope > div')[idx]; 
+    if (!box) return null; 
+    return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); 
 }
 
 let currentAuthTab = 'login';
@@ -835,7 +843,6 @@ async function processEvents(events, skipAttack2Anim = false) {
             AudioFX.play('special'); 
             showEffectBanner(`⚔️ Attaque du 2 : ${ev.victims.map(v => `${getPlayerName(v.id)} +${v.count}`).join(', ')}`); 
             
-            // 🎯 Empêche l'envol fantôme si l'animation a déjà été exécutée localement par l'attaquant
             if (!skipAttack2Anim && deckRect && state.animationsEnabled) {
                 state.isAnimating = true;
                 for (const v of ev.victims) {
@@ -1067,6 +1074,9 @@ async function applyMultiState(remoteState) {
     const deckRect = $('deck-pile')?.getBoundingClientRect();
     const discardRect = $('discard-pile-container')?.getBoundingClientRect();
 
+    // 🎯 Capture isMyLastAction BEFORE nulling game.lastAction
+    const isMyLastAction = game.lastAction && game.lastAction.playerId === myUserId;
+
     if (game.lastAction && game.lastAction.playerId === myUserId) {
         game.lastAction = null;
     } else if (game.lastAction && state.animationsEnabled && deckRect && discardRect) {
@@ -1089,9 +1099,8 @@ async function applyMultiState(remoteState) {
     }
 
     if (game.lastEvents && Array.isArray(game.lastEvents)) {
-        // 🎯 Si c'est l'action du joueur courant lui-même, on saute l'animation Attack 2 pour éviter l'envol fantôme
-        const isMyLastAction = game.lastAction && game.lastAction.playerId === myUserId;
         for (const ev of game.lastEvents) {
+            // 🎯 Evite l'envol fantôme pour l'attaquant en vérifiant correctement isMyLastAction
             if (ev.type === 'ATTACK_2' && !isMyLastAction && deckRect && state.animationsEnabled) {
                 state.isAnimating = true;
                 for (const v of ev.victims) {
@@ -1183,7 +1192,6 @@ async function handleHumanPlay(idx) {
         await animateFlightCustom(fromRect, toRect, playedEvent.card, false);
     }
     
-    // 🎯 Exécute les événements locaux en sautant l'animation Attack 2 (déjà jouée par l'attaquant)
     await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'), true);
     state.isAnimating = false;
 
@@ -1290,8 +1298,7 @@ async function executeAiTurn(bot) {
 }
 
 async function prepareNextRound(customCards) {
-    if (!game || state.roundProcessing) return;
-    state.roundProcessing = true;
+    if (!game) return;
     if (customCards) {
         game.config.cardsPerPlayer = parseInt(customCards, 10);
     }
@@ -1299,7 +1306,6 @@ async function prepareNextRound(customCards) {
 }
 
 async function startRoundImmediate() {
-    state.roundProcessing = false;
     const result = Engine8Master.startRound(game);
     if (!result.valid) { if (game.gameOver) showGameOverModal(); return; }
     state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.pendingDiscardAnimation = true;
@@ -1320,9 +1326,6 @@ async function startRoundImmediate() {
     }
 }
 
-/**
- * 🎯 showRoundEndModal sécurisé pour libérer les verrous et permettre le passage fluide à la manche suivante
- */
 async function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.roundEnded = true;
@@ -1441,7 +1444,7 @@ function startGameSession() {
     const players = [{ id: 0, name: rawName, isHuman: true }];
     for (let i = 1; i <= state.aiCount; i++) players.push({ id: i, name: `Bot ${i}`, isHuman: false });
     game = Engine8Master.createGame({ players, cardsPerPlayer: state.cardsPerPlayer, cardsPerDeck: 8, numDecks: 1 });
-    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false;
     if ($('setup-screen')) $('setup-screen').classList.add('hidden');
     if ($('game-board')) $('game-board').classList.remove('hidden');
     prepareNextRound(state.cardsPerPlayer);
@@ -1449,7 +1452,7 @@ function startGameSession() {
 
 function returnToSetup() {
     game = null;
-    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false; state.roundProcessing = false;
+    state.isHumanTurn = false; state.isAiThinking = false; state.isAnimating = false;
     if (roundTimerInterval) clearInterval(roundTimerInterval);
     localStorage.removeItem('8master-active-game');
     localStorage.removeItem('8master-active-multi-game-id');
