@@ -1105,7 +1105,7 @@ async function pushInitialState(gameId) {
 }
 
 /**
- * 🎯 FONCTION applyMultiState (Corrigée pour traiter les événements d'attaque/pioche chez le receveur)
+ * 🎯 FONCTION applyMultiState (Corrigée chirurgicalement pour animations distantes)
  */
 async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
@@ -1118,9 +1118,8 @@ async function applyMultiState(remoteState) {
     const deckRect = $('deck-pile')?.getBoundingClientRect();
     const discardRect = $('discard-pile-container')?.getBoundingClientRect();
 
-    // 🛡️ FILTRE ANTI-FANTÔME & GESTION DES ATTAQUES DISTANTES
     if (game.lastAction && game.lastAction.playerId === myUserId) {
-        game.lastAction = null; // On consomme l'action locale
+        game.lastAction = null;
     } else if (game.lastAction && state.animationsEnabled && deckRect && discardRect) {
         const actorId = game.lastAction.playerId;
         const fromR = getPlayerRect(actorId);
@@ -1140,7 +1139,7 @@ async function applyMultiState(remoteState) {
         game.lastAction = null;
     }
 
-    // ⚔️ GARANTIE DE L'ANIMATION D'ATTAQUE (Reçue par le Joueur B)
+    // Traitement garanti des événements distants (Attaques du 2, etc.) pour tous les clients
     if (game.lastEvents && Array.isArray(game.lastEvents)) {
         for (const ev of game.lastEvents) {
             if (ev.type === 'ATTACK_2' && deckRect && state.animationsEnabled) {
@@ -1393,7 +1392,7 @@ async function startRoundImmediate() {
 }
 
 /**
- * 🎯 showRoundEndModal (Corrigée pour libérer proprement les boutons et minuteurs)
+ * 🎯 showRoundEndModal (Corrigée chirurgicalement pour la gestion du donneur)
  */
 async function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
@@ -1423,8 +1422,9 @@ async function showRoundEndModal(summary, winnerId) {
         if (dealerControls) dealerControls.classList.add('hidden');
         if (waitingDealerBox) waitingDealerBox.classList.add('hidden');
     } else {
+        // Attribution stable du donneur
         let maxScore = -1;
-        let dealerPlayerId = null;
+        let dealerPlayerId = game.players[0].id;
         game.players.forEach(p => {
             const sc = game.scores[p.id] || 0;
             if (sc > maxScore) {
@@ -1457,6 +1457,7 @@ async function showRoundEndModal(summary, winnerId) {
                         roundTimerInterval = null;
                         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
                         $('board-winner-panel')?.classList.add('hidden');
+                        game.roundEnded = false; // Réinitialisation anti-blocage
                         await prepareNextRound(chosenCards);
                     }
                 }, 1000);
@@ -1665,6 +1666,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
         $('board-winner-panel')?.classList.add('hidden');
         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
+        game.roundEnded = false; // Réinitialisation anti-blocage
         await prepareNextRound(chosenCards);
     });
 
