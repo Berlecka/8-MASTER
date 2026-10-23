@@ -160,33 +160,19 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODALE MULTIJOUEUR -->
+<!-- MODALE MULTIJOUEUR (Boutons Annuaire & Match Rapide retirés temporairement) -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         <h2 class="text-2xl font-black text-amber-400 mb-1">Multijoueur</h2>
         <p class="text-xs text-slate-400 mb-6">Jouez avec vos amis</p>
         <div class="space-y-4">
-            <button id="btn-show-directory" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-address-book"></i> Annuaire des joueurs
-            </button>
-            <div class="flex items-center gap-2 my-2"><div class="h-px bg-slate-800 flex-1"></div><span class="text-xs text-slate-500 font-bold">OU</span><div class="h-px bg-slate-800 flex-1"></div></div>
-            <button id="btn-quick-match" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Match Rapide (1v1)</button>
             <button id="btn-create-room" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Créer une salle privée</button>
             <div>
                 <input type="text" id="join-code-input" maxlength="7" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 px-3 text-white text-center text-lg font-black tracking-widest focus:outline-none focus:border-amber-400 uppercase" placeholder="8M-XXXX">
                 <button id="btn-join-room" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right-to-bracket"></i> Rejoindre avec un code</button>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- MODALE ANNUAIRE -->
-<div id="modal-directory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl modal-entry relative">
-        <button id="btn-close-directory" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-        <h2 class="text-xl font-black text-white mb-4">Joueurs en ligne</h2>
-        <div id="directory-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
     </div>
 </div>
 
@@ -533,11 +519,6 @@ function renderCardHTML(card, isPlayable = false) {
     return `<div class="playing-card ${playableClass} ${suitClass} flex flex-col justify-between p-1 bg-white select-none"><div class="card-corner text-left font-black text-[10px] leading-none">${card.value}<br><span>${card.suit}</span></div><div class="card-center text-center font-black text-xl my-auto">${card.suit}</div><div class="card-corner text-left font-black text-[10px] leading-none transform rotate-180">${card.value}<br><span>${card.suit}</span></div></div>`;
 }
 
-/**
- * ANIMATION UNIFIÉE (RÈGLES DÉFINITIVES) :
- * - DÉPÔT (Main -> Défausse) : Toujours FACE DÉCOUVERTE pour TOUS les joueurs.
- * - PIOCHE (Talon -> Main) : Toujours FACE CACHÉE pour TOUS les joueurs (volontaire ou attaque/pénalité).
- */
 function animateFlightCustom(fromRect, toRect, cardData, isFaceDown = false) {
     return new Promise(resolve => {
         if (!state.animationsEnabled || !fromRect || !toRect) { resolve(); return; }
@@ -856,7 +837,6 @@ async function processEvents(events) {
             AudioFX.play('special'); 
             showEffectBanner(`⚔️ Attaque du 2 : ${ev.victims.map(v => `${getPlayerName(v.id)} +${v.count}`).join(', ')}`); 
             
-            // ATTAQUE DU 2 : TOUJOURS DU TALON VERS LE JOUEUR, FACE CACHÉE
             if (deckRect && state.animationsEnabled) {
                 state.isAnimating = true;
                 for (const v of ev.victims) {
@@ -910,22 +890,6 @@ async function enterMultiplayer(mode, opts) {
     opts = opts || {};
     const displayName = state.user.user_metadata?.username || 'Joueur';
 
-    if (mode === 'quick') {
-        showSearchOverlay('Recherche d\'un adversaire...');
-        const { data, error } = await supabaseClient.rpc('rpc_enter_queue', { p_display_name: displayName, p_mode: 'quick' });
-        if (error) { hideSearchOverlay(); alert('Erreur : ' + error.message); return; }
-        if (data.matched) { hideSearchOverlay(); await attachToGame(data.game_id, false); }
-        else { startSearchPoll(); }
-        return;
-    }
-    if (mode === 'invite') {
-        showSearchOverlay('Envoi de l\'invitation...');
-        const { data, error } = await supabaseClient.rpc('rpc_invite_direct', { p_invitee_id: opts.inviteeId, p_display_name: displayName });
-        hideSearchOverlay();
-        if (error) { alert('Erreur : ' + error.message); return; }
-        showPrivateRoomLobby(data.game_id, 'SUR INVITATION', true);
-        return;
-    }
     if (mode === 'private') {
         showSearchOverlay('Connexion à la salle...');
         const { data: gameId, error } = await supabaseClient.rpc('rpc_join_multiplayer_game', { p_code: opts.code, p_display_name: displayName });
@@ -945,24 +909,13 @@ function showSearchOverlay(text) {
         ov.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"><div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-amber-500 mx-auto mb-4"></div><h2 id="multi-search-text" class="text-lg font-black text-white mb-2"></h2><p class="text-xs text-slate-400 mb-4">Ne quittez pas cette page</p><button id="btn-cancel-search" class="w-full bg-slate-800 hover:bg-slate-700 text-red-300 font-bold py-2.5 rounded-xl text-xs">Annuler</button></div>`;
         document.body.appendChild(ov);
         const cancelBtn = $('btn-cancel-search');
-        if (cancelBtn) cancelBtn.onclick = async () => { try { await supabaseClient.rpc('rpc_leave_queue'); } catch(e){}; stopSearchPoll(); hideSearchOverlay(); };
+        if (cancelBtn) cancelBtn.onclick = async () => { hideSearchOverlay(); };
     }
     if ($('multi-search-text')) $('multi-search-text').textContent = text;
     ov.classList.remove('hidden');
 }
 
 function hideSearchOverlay() { const ov = $('multi-search-overlay'); if (ov) ov.classList.add('hidden'); }
-
-function startSearchPoll() {
-    stopSearchPoll();
-    multiSearchPollInterval = setInterval(async () => {
-        const { data, error } = await supabaseClient.rpc('rpc_check_my_match');
-        if (error) return;
-        if (data && data.found) { stopSearchPoll(); hideSearchOverlay(); await attachToGame(data.game_id, data.is_host); }
-    }, 1000);
-}
-
-function stopSearchPoll() { if (multiSearchPollInterval) clearInterval(multiSearchPollInterval); multiSearchPollInterval = null; }
 
 async function showPrivateRoomLobby(gameId, code, isHost) {
     currentMultiGameId = gameId;
@@ -1105,7 +1058,7 @@ async function pushInitialState(gameId) {
 }
 
 /**
- * 🎯 FONCTION applyMultiState (Corrigée chirurgicalement pour animations distantes)
+ * 🎯 applyMultiState mis à jour pour garantir l'affichage de la modale de fin de manche pour TOUS les joueurs
  */
 async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
@@ -1139,7 +1092,6 @@ async function applyMultiState(remoteState) {
         game.lastAction = null;
     }
 
-    // Traitement garanti des événements distants (Attaques du 2, etc.) pour tous les clients
     if (game.lastEvents && Array.isArray(game.lastEvents)) {
         for (const ev of game.lastEvents) {
             if (ev.type === 'ATTACK_2' && deckRect && state.animationsEnabled) {
@@ -1194,7 +1146,6 @@ async function leaveMultiplayer() {
     if (currentMultiGameId && supabaseClient) {
         try {
             await supabaseClient.from('games').update({ status: 'abandoned' }).eq('id', currentMultiGameId);
-            await supabaseClient.rpc('rpc_leave_queue');
         } catch(e) {}
     }
     if (multiStateChannel) { supabaseClient.removeChannel(multiStateChannel); multiStateChannel = null; }
@@ -1208,29 +1159,6 @@ async function leaveMultiplayer() {
     returnToSetup();
 }
 
-async function openDirectory() {
-    if (!state.user) { alert('Connectez-vous.'); return; }
-    if ($('modal-directory')) $('modal-directory').classList.remove('hidden');
-    const list = $('directory-list');
-    if (!list) return;
-    list.innerHTML = '<p class="text-xs text-slate-400 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Chargement...</p>';
-    const { data, error } = await supabaseClient.rpc('rpc_list_available_players');
-    list.innerHTML = '';
-    if (error) { list.innerHTML = `<p class="text-xs text-red-400 text-center">Erreur : ${escapeHtml(error.message)}</p>`; return; }
-    if (!data || data.length === 0) { list.innerHTML = '<p class="text-xs text-slate-400 italic text-center">Aucun joueur disponible.</p>'; return; }
-    data.forEach(p => {
-        const color = p.status === 'available' ? 'text-emerald-400' : p.status === 'solo' ? 'text-blue-400' : 'text-red-400';
-        const label = p.status === 'available' ? 'Disponible' : p.status === 'solo' ? 'En Solo' : (p.status === 'waiting_multi' ? 'Cherche une partie' : 'En partie');
-        const canInvite = p.status === 'available' || p.status === 'waiting_multi';
-        const safeName = escapeHtml(p.username_display).replace(/'/g, "\\'");
-        list.innerHTML += `<div class="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg mb-2"><div class="text-left"><div class="text-sm font-bold text-white">${escapeHtml(p.username_display)}</div><div class="text-[10px] ${color} font-bold">${label}</div></div><button onclick="window._invitePlayer('${p.id}','${safeName}')" ${!canInvite ? 'disabled' : ''} class="bg-amber-500 disabled:opacity-30 text-slate-950 text-[10px] font-black px-3 py-1.5 rounded-lg">Inviter</button></div>`;
-    });
-}
-window._invitePlayer = async (userId, name) => {
-    if ($('modal-directory')) $('modal-directory').classList.add('hidden');
-    await enterMultiplayer('invite', { inviteeId: userId, inviteeName: name });
-};
-
 async function handleHumanPlay(idx) {
     if (!state.isHumanTurn || state.isAnimating) return;
     const human = humanPlayer(), card = human.hand[idx];
@@ -1243,7 +1171,6 @@ async function handleHumanPlay(idx) {
     const result = Engine8Master.playCard(game, human.id, idx);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
-    // 🔥 Marquage de l'action locale
     game.lastAction = { type: 'PLAY', playerId: human.id };
     game.lastEvents = result.events;
 
@@ -1292,7 +1219,6 @@ async function handleHumanDraw() {
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
-    // 🔥 Marquage de la pioche locale
     game.lastAction = { type: 'DRAW', playerId: human.id };
     game.lastEvents = result.events;
 
@@ -1392,7 +1318,7 @@ async function startRoundImmediate() {
 }
 
 /**
- * 🎯 showRoundEndModal (Corrigée chirurgicalement pour la gestion du donneur)
+ * 🎯 showRoundEndModal gérant proprement le panneau et les contrôles du donneur
  */
 async function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
@@ -1422,7 +1348,6 @@ async function showRoundEndModal(summary, winnerId) {
         if (dealerControls) dealerControls.classList.add('hidden');
         if (waitingDealerBox) waitingDealerBox.classList.add('hidden');
     } else {
-        // Attribution stable du donneur
         let maxScore = -1;
         let dealerPlayerId = game.players[0].id;
         game.players.forEach(p => {
@@ -1457,7 +1382,7 @@ async function showRoundEndModal(summary, winnerId) {
                         roundTimerInterval = null;
                         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
                         $('board-winner-panel')?.classList.add('hidden');
-                        game.roundEnded = false; // Réinitialisation anti-blocage
+                        game.roundEnded = false;
                         await prepareNextRound(chosenCards);
                     }
                 }, 1000);
@@ -1523,12 +1448,11 @@ function returnToSetup() {
     if (roundTimerInterval) clearInterval(roundTimerInterval);
     localStorage.removeItem('8master-active-game');
     localStorage.removeItem('8master-active-multi-game-id');
-    ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','modal-directory','modal-invite-received','private-room-overlay','multi-search-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+    ['modal-rules','modal-suit-picker','modal-card-count','board-winner-panel','modal-game-over','modal-multi','private-room-overlay','multi-search-overlay'].forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
     if ($('setup-screen')) $('setup-screen').classList.remove('hidden');
     if ($('game-board')) $('game-board').classList.add('hidden');
 }
 
-/* ÉVÉNEMENTS DOM SÉCURISÉS */
 document.addEventListener('DOMContentLoaded', () => {
     AudioFX.init();
     const saved = Storage.load();
@@ -1595,9 +1519,6 @@ document.addEventListener('DOMContentLoaded', () => {
     bindClick('btn-start-game-final', startGameSession);
     bindClick('btn-open-multi', () => { if (!state.user) { alert('Connectez-vous pour jouer en multijoueur.'); openAuthModal(); return; } $('modal-multi')?.classList.remove('hidden'); });
     bindClick('btn-close-multi', () => $('modal-multi')?.classList.add('hidden'));
-    bindClick('btn-show-directory', openDirectory);
-    bindClick('btn-close-directory', () => $('modal-directory')?.classList.add('hidden'));
-    bindClick('btn-quick-match', async () => { $('modal-multi')?.classList.add('hidden'); await enterMultiplayer('quick'); });
     
     bindClick('btn-create-room', async () => {
         if (!state.user) { alert('Connectez-vous.'); return; }
@@ -1666,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
         $('board-winner-panel')?.classList.add('hidden');
         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
-        game.roundEnded = false; // Réinitialisation anti-blocage
+        game.roundEnded = false;
         await prepareNextRound(chosenCards);
     });
 
