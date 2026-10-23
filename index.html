@@ -797,7 +797,8 @@ function updateUI() {
     const oppContainer = $('opponents-container');
     if (oppContainer) {
         oppContainer.innerHTML = '';
-        game.players.filter(p => !p.isHuman).forEach(opp => {
+        const myUserId = state.user?.id;
+        game.players.filter(p => p.id !== myUserId && p.id !== 0).forEach(opp => {
             const isTurn = curP && curP.id === opp.id && !opp.eliminated;
             const box = document.createElement('div');
             box.className = `bg-slate-950/70 border rounded-xl p-2 text-center flex flex-col items-center justify-between transition ${opp.eliminated ? 'border-red-800/50 opacity-40 grayscale' : isTurn ? 'border-amber-400 active-turn-glow' : 'border-slate-800'}`;
@@ -1084,13 +1085,16 @@ async function applyMultiState(remoteState) {
 
     if (previousGame && state.animationsEnabled && deckRect && discardRect) {
         if (newTop && (!lastDiscardTopCard || lastDiscardTopCard.suit !== newTop.suit || lastDiscardTopCard.value !== newTop.value)) {
+            // CORRECTION DES ENVOLS : On identifie précisément quel joueur vient de jouer (le joueur précédent)
             const lastPlayerIdx = (game.currentPlayerIdx - game.direction + game.players.length) % game.players.length;
             const lastPlayer = game.players[lastPlayerIdx];
-            if (lastPlayer && lastPlayer.id !== myUserId) {
+            if (lastPlayer) {
                 const fromR = getPlayerRect(lastPlayer.id);
                 if (fromR) {
                     state.isAnimating = true;
-                    await animateFlight(fromR, discardRect, newTop, false);
+                    // Si c'est l'adversaire qui a joué, on anime sa carte (visible ou face cachée si non visible, ici on passe la carte si disponible ou face cachée)
+                    const isMe = (lastPlayer.id === myUserId);
+                    await animateFlight(fromR, discardRect, isMe ? newTop : null, !isMe);
                     state.isAnimating = false;
                 }
             }
@@ -1596,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth().finally(async () => {
         const savedMultiId = localStorage.getItem('8master-active-multi-game-id');
         if (savedMultiId && state.user && supabaseClient) {
-            const { data: gameRow } = await supabaseClient.from('games').select('status, host_id').eq('id', savedMultiId).single();
+            const { data: gameRow } = await supabaseClient.get ? await supabaseClient.from('games').select('status, host_id').eq('id', savedMultiId).single() : { data: null };
             if (gameRow && gameRow.status === 'playing') {
                 const isHost = (gameRow.host_id === state.user.id);
                 await attachToGame(savedMultiId, isHost);
