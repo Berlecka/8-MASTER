@@ -160,7 +160,7 @@ body.light-theme .black-suit { color: #0f172a; }
     </div>
 </main>
 
-<!-- MODALE MULTIJOUEUR (Boutons Annuaire & Match Rapide retirés temporairement) -->
+<!-- MODALE MULTIJOUEUR -->
 <div id="modal-multi" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl modal-entry relative">
         <button id="btn-close-multi" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -567,8 +567,6 @@ function getPlayerRect(playerId) {
     return null;
 }
 
-function botMiniRect(bot) { if (!game) return null; const idx = game.players.filter(p=>!p.isHuman).findIndex(p=>p.id===bot.id); const box = $('opponents-container').querySelectorAll(':scope > div')[idx]; if (!box) return null; return (box.querySelector('.mt-1.h-4') || box).getBoundingClientRect(); }
-
 let currentAuthTab = 'login';
 function switchAuthTab(tab) {
     currentAuthTab = tab;
@@ -815,7 +813,7 @@ function updateUI() {
     saveGameState();
 }
 
-async function processEvents(events) {
+async function processEvents(events, skipAttack2Anim = false) {
     const deckRect = $('deck-pile')?.getBoundingClientRect();
     for (const ev of events) {
         if (ev.type === 'DRAWN') { 
@@ -837,7 +835,8 @@ async function processEvents(events) {
             AudioFX.play('special'); 
             showEffectBanner(`⚔️ Attaque du 2 : ${ev.victims.map(v => `${getPlayerName(v.id)} +${v.count}`).join(', ')}`); 
             
-            if (deckRect && state.animationsEnabled) {
+            // 🎯 Empêche l'envol fantôme si l'animation a déjà été exécutée localement par l'attaquant
+            if (!skipAttack2Anim && deckRect && state.animationsEnabled) {
                 state.isAnimating = true;
                 for (const v of ev.victims) {
                     const toR = getPlayerRect(v.id);
@@ -1057,9 +1056,6 @@ async function pushInitialState(gameId) {
     await applyMultiState(initial);
 }
 
-/**
- * 🎯 applyMultiState mis à jour pour garantir l'affichage de la modale de fin de manche pour TOUS les joueurs
- */
 async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
     const wasMyTurn = state.isHumanTurn;
@@ -1093,8 +1089,10 @@ async function applyMultiState(remoteState) {
     }
 
     if (game.lastEvents && Array.isArray(game.lastEvents)) {
+        // 🎯 Si c'est l'action du joueur courant lui-même, on saute l'animation Attack 2 pour éviter l'envol fantôme
+        const isMyLastAction = game.lastAction && game.lastAction.playerId === myUserId;
         for (const ev of game.lastEvents) {
-            if (ev.type === 'ATTACK_2' && deckRect && state.animationsEnabled) {
+            if (ev.type === 'ATTACK_2' && !isMyLastAction && deckRect && state.animationsEnabled) {
                 state.isAnimating = true;
                 for (const v of ev.victims) {
                     const toR = getPlayerRect(v.id);
@@ -1111,12 +1109,16 @@ async function applyMultiState(remoteState) {
     }
 
     if (game.gameOver) {
+        state.isAnimating = false;
+        state.isAiThinking = false;
         updateUI();
         showGameOverModal();
         return;
     }
 
     if (game.roundEnded) {
+        state.isAnimating = false;
+        state.isAiThinking = false;
         updateUI();
         if (game.lastRoundSummary && game.lastWinnerId) {
             showRoundEndModal(game.lastRoundSummary, game.lastWinnerId);
@@ -1181,7 +1183,8 @@ async function handleHumanPlay(idx) {
         await animateFlightCustom(fromRect, toRect, playedEvent.card, false);
     }
     
-    await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'));
+    // 🎯 Exécute les événements locaux en sautant l'animation Attack 2 (déjà jouée par l'attaquant)
+    await processEvents(result.events.filter(e => e.type !== 'CARD_PLAYED' && e.type !== 'ROUND_ENDED'), true);
     state.isAnimating = false;
 
     const roundEndEvent = result.events.find(e => e.type === 'ROUND_ENDED');
@@ -1318,13 +1321,15 @@ async function startRoundImmediate() {
 }
 
 /**
- * 🎯 showRoundEndModal gérant proprement le panneau et les contrôles du donneur
+ * 🎯 showRoundEndModal sécurisé pour libérer les verrous et permettre le passage fluide à la manche suivante
  */
 async function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.roundEnded = true;
     game.lastRoundSummary = summary; 
     game.lastWinnerId = winnerId; 
+    state.isAnimating = false;
+    state.isAiThinking = false;
     saveGameState();
 
     if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
