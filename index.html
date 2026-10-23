@@ -1380,7 +1380,6 @@ async function showRoundEndModal(summary, winnerId) {
                 if (timerBadge) timerBadge.textContent = `${timeLeft}s`;
                 if (timeLeft <= 0) {
                     clearInterval(roundTimerInterval);
-                    // Lancement automatique avec la valeur actuelle du slider
                     const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
                     $('board-winner-panel')?.classList.add('hidden');
                     await prepareNextRound(chosenCards);
@@ -1579,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     bindInput('dealer-cards-slider', (e) => {
         const val = e.target.value;
-        if ($('dealer-cards-disp')) $('dealer-cards-disptextContent = val;
+        if ($('dealer-cards-disp')) $('dealer-cards-disp').textContent = val;
     });
 
     bindClick('btn-dealer-next', async () => {
