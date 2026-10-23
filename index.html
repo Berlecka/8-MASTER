@@ -1104,13 +1104,12 @@ async function pushInitialState(gameId) {
     await applyMultiState(initial);
 }
 
-let lastDiscardTopCard = null;
-let lastDeckCount = null;
-
+/**
+ * 🎯 NOUVELLE FONCTION applyMultiState (Filtrage chirurgical par lastAction)
+ */
 async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
     const wasMyTurn = state.isHumanTurn;
-    const previousGame = game;
     game = remoteState;
     const myUserId = state.user?.id;
     game.players.forEach(p => { p.isHuman = (p.id === myUserId); });
@@ -1119,41 +1118,28 @@ async function applyMultiState(remoteState) {
     const deckRect = $('deck-pile')?.getBoundingClientRect();
     const discardRect = $('discard-pile-container')?.getBoundingClientRect();
 
-    if (previousGame && state.animationsEnabled && deckRect && discardRect) {
-        // Détermine qui vient de jouer le dernier coup
-        const lastPlayerIdx = (game.currentPlayerIdx - game.direction + game.players.length) % game.players.length;
-        const lastPlayer = game.players[lastPlayerIdx];
-        const isMeLastPlayer = lastPlayer && lastPlayer.id === myUserId;
+    // 🛡️ FILTRE ANTI-FANTÔME : Si l'action vient de TOI, tu as déjà fait ton animation en local au moment du clic. Zéro doublon !
+    if (game.lastAction && game.lastAction.playerId === myUserId) {
+        game.lastAction = null; // On consomme l'action
+    } else if (game.lastAction && state.animationsEnabled && deckRect && discardRect) {
+        // C'est un AUTRE joueur qui a agi : on déclenche l'animation de manière fluide sur ton écran
+        const actorId = game.lastAction.playerId;
+        const fromR = getPlayerRect(actorId);
 
-        // 1. DÉPÔT : Toujours FACE DÉCOUVERTE, mais SEULEMENT si c'est un AUTRE joueur (évite le double effet pour toi)
-        if (newTop && (!lastDiscardTopCard || lastDiscardTopCard.suit !== newTop.suit || lastDiscardTopCard.value !== newTop.value)) {
-            if (lastPlayer && !isMeLastPlayer) {
-                const fromR = getPlayerRect(lastPlayer.id);
-                if (fromR) {
-                    state.isAnimating = true;
-                    await animateFlightCustom(fromR, discardRect, newTop, false);
-                    state.isAnimating = false;
-                }
+        if (game.lastAction.type === 'PLAY' && newTop && fromR) {
+            state.isAnimating = true;
+            await animateFlightCustom(fromR, discardRect, newTop, false);
+            state.isAnimating = false;
+        } else if (game.lastAction.type === 'DRAW') {
+            const toR = getPlayerRect(actorId);
+            if (toR) {
+                state.isAnimating = true;
+                await animateFlightCustom(deckRect, toR, null, true);
+                state.isAnimating = false;
             }
         }
-        // 2. PIOCHE NORMALE : Toujours FACE CACHÉE, mais SEULEMENT si c'est un AUTRE joueur
-        if (lastDeckCount !== null && game.deck.length < lastDeckCount) {
-            const drawCount = lastDeckCount - game.deck.length;
-            const receiverPlayer = game.players[game.currentPlayerIdx];
-            const isMeReceiver = receiverPlayer && receiverPlayer.id === myUserId;
-            if (receiverPlayer && drawCount === 1 && !isMeReceiver) {
-                const toR = getPlayerRect(receiverPlayer.id);
-                if (toR) {
-                    state.isAnimating = true;
-                    await animateFlightCustom(deckRect, toR, null, true);
-                    state.isAnimating = false;
-                }
-            }
-        }
+        game.lastAction = null;
     }
-
-    lastDiscardTopCard = newTop;
-    lastDeckCount = game.deck ? game.deck.length : null;
 
     if (game.gameOver) {
         updateUI();
@@ -1240,10 +1226,13 @@ async function handleHumanPlay(idx) {
     const result = Engine8Master.playCard(game, human.id, idx);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
+    // 🔥 Marquage de l'action locale pour éviter les fantômes
+    game.lastAction = { type: 'PLAY', playerId: human.id };
+
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     
-    // DÉPÔT : Toujours face découverte
+    // DÉPÔT LOCAL : Toujours face découverte immédiatement
     if (playedEvent && fromRect && toRect && state.animationsEnabled) {
         await animateFlightCustom(fromRect, toRect, playedEvent.card, false);
     }
@@ -1286,7 +1275,10 @@ async function handleHumanDraw() {
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
-    // PIOCHE : Toujours face cachée du talon vers la main
+    // 🔥 Marquage de la pioche locale pour éviter les fantômes
+    game.lastAction = { type: 'DRAW', playerId: human.id };
+
+    // PIOCHE LOCALE : Toujours face cachée immédiatement
     if (fromR && toR && state.animationsEnabled) {
         await animateFlightCustom(fromR, toR, null, true);
     }
