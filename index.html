@@ -1105,7 +1105,7 @@ async function pushInitialState(gameId) {
 }
 
 /**
- * 🎯 NOUVELLE FONCTION applyMultiState (Filtrage chirurgical par lastAction)
+ * 🎯 FONCTION applyMultiState (Corrigée pour traiter les événements d'attaque/pioche chez le receveur)
  */
 async function applyMultiState(remoteState) {
     if (!remoteState || !remoteState.players) return;
@@ -1118,11 +1118,10 @@ async function applyMultiState(remoteState) {
     const deckRect = $('deck-pile')?.getBoundingClientRect();
     const discardRect = $('discard-pile-container')?.getBoundingClientRect();
 
-    // 🛡️ FILTRE ANTI-FANTÔME : Si l'action vient de TOI, tu as déjà fait ton animation en local au moment du clic. Zéro doublon !
+    // 🛡️ FILTRE ANTI-FANTÔME & GESTION DES ATTAQUES DISTANTES
     if (game.lastAction && game.lastAction.playerId === myUserId) {
-        game.lastAction = null; // On consomme l'action
+        game.lastAction = null; // On consomme l'action locale
     } else if (game.lastAction && state.animationsEnabled && deckRect && discardRect) {
-        // C'est un AUTRE joueur qui a agi : on déclenche l'animation de manière fluide sur ton écran
         const actorId = game.lastAction.playerId;
         const fromR = getPlayerRect(actorId);
 
@@ -1139,6 +1138,25 @@ async function applyMultiState(remoteState) {
             }
         }
         game.lastAction = null;
+    }
+
+    // ⚔️ GARANTIE DE L'ANIMATION D'ATTAQUE (Reçue par le Joueur B)
+    if (game.lastEvents && Array.isArray(game.lastEvents)) {
+        for (const ev of game.lastEvents) {
+            if (ev.type === 'ATTACK_2' && deckRect && state.animationsEnabled) {
+                state.isAnimating = true;
+                for (const v of ev.victims) {
+                    const toR = getPlayerRect(v.id);
+                    if (toR) {
+                        for (let i = 0; i < v.count; i++) {
+                            await animateFlightCustom(deckRect, toR, null, true);
+                            await new Promise(r => setTimeout(r, 60));
+                        }
+                    }
+                }
+                state.isAnimating = false;
+            }
+        }
     }
 
     if (game.gameOver) {
@@ -1226,13 +1244,13 @@ async function handleHumanPlay(idx) {
     const result = Engine8Master.playCard(game, human.id, idx);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
-    // 🔥 Marquage de l'action locale pour éviter les fantômes
+    // 🔥 Marquage de l'action locale
     game.lastAction = { type: 'PLAY', playerId: human.id };
+    game.lastEvents = result.events;
 
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     
-    // DÉPÔT LOCAL : Toujours face découverte immédiatement
     if (playedEvent && fromRect && toRect && state.animationsEnabled) {
         await animateFlightCustom(fromRect, toRect, playedEvent.card, false);
     }
@@ -1275,10 +1293,10 @@ async function handleHumanDraw() {
     const result = Engine8Master.drawCard(game, human.id);
     if (!result.valid) { state.isAnimating = false; state.isHumanTurn = true; return; }
 
-    // 🔥 Marquage de la pioche locale pour éviter les fantômes
+    // 🔥 Marquage de la pioche locale
     game.lastAction = { type: 'DRAW', playerId: human.id };
+    game.lastEvents = result.events;
 
-    // PIOCHE LOCALE : Toujours face cachée immédiatement
     if (fromR && toR && state.animationsEnabled) {
         await animateFlightCustom(fromR, toR, null, true);
     }
@@ -1313,7 +1331,7 @@ async function executeAiTurn(bot) {
         const fromR = $('deck-pile')?.getBoundingClientRect();
         const toR = botMiniRect(bot);
         const result = Engine8Master.drawCard(game, bot.id);
-        // PIOCHE BOT : Toujours face cachée
+        game.lastEvents = result.events;
         if (fromR && toR && state.animationsEnabled) {
             await animateFlightCustom(fromR, toR, null, true);
         }
@@ -1329,10 +1347,10 @@ async function executeAiTurn(bot) {
     const result = Engine8Master.playCard(game, bot.id, chosenIdx);
     if (!result.valid) { scheduleNextTurn(); return; }
     
+    game.lastEvents = result.events;
     state.pendingDiscardAnimation = true; updateUI();
     const playedEvent = result.events.find(e => e.type === 'CARD_PLAYED');
     
-    // DÉPÔT BOT : Toujours face découverte
     if (playedEvent && fromRect && toRect && state.animationsEnabled) {
         await animateFlightCustom(fromRect, toRect, playedEvent.card, false);
     }
@@ -1374,12 +1392,17 @@ async function startRoundImmediate() {
     }
 }
 
+/**
+ * 🎯 showRoundEndModal (Corrigée pour libérer proprement les boutons et minuteurs)
+ */
 async function showRoundEndModal(summary, winnerId) {
     if (!summary) return;
     game.roundEnded = true;
     game.lastRoundSummary = summary; 
     game.lastWinnerId = winnerId; 
     saveGameState();
+
+    if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
 
     const human = humanPlayer();
     let html = '';
@@ -1394,15 +1417,12 @@ async function showRoundEndModal(summary, winnerId) {
     const dealerControls = $('dealer-controls');
     const waitingDealerBox = $('waiting-dealer-box');
 
-    // SÉPARATION DES MODES : SOLO VS MULTIJOUEUR
     if (!currentMultiGameId) {
-        // --- MODE SOLO ---
         if ($('dealer-info-box')) $('dealer-info-box').innerHTML = `<i class="fa-solid fa-trophy mr-1"></i> Fin de la manche ${game.roundNumber || 1}`;
         if (soloControls) soloControls.classList.remove('hidden');
         if (dealerControls) dealerControls.classList.add('hidden');
         if (waitingDealerBox) waitingDealerBox.classList.add('hidden');
     } else {
-        // --- MODE MULTIJOUEUR ---
         let maxScore = -1;
         let dealerPlayerId = null;
         game.players.forEach(p => {
@@ -1428,12 +1448,13 @@ async function showRoundEndModal(summary, winnerId) {
                 let timeLeft = 10;
                 const timerBadge = $('round-timer-badge');
                 if (timerBadge) timerBadge.textContent = `${timeLeft}s`;
-                if (roundTimerInterval) clearInterval(roundTimerInterval);
+                
                 roundTimerInterval = setInterval(async () => {
                     timeLeft--;
                     if (timerBadge) timerBadge.textContent = `${timeLeft}s`;
                     if (timeLeft <= 0) {
                         clearInterval(roundTimerInterval);
+                        roundTimerInterval = null;
                         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
                         $('board-winner-panel')?.classList.add('hidden');
                         await prepareNextRound(chosenCards);
@@ -1641,7 +1662,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     bindClick('btn-dealer-next', async () => {
-        if (roundTimerInterval) clearInterval(roundTimerInterval);
+        if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
         $('board-winner-panel')?.classList.add('hidden');
         const chosenCards = parseInt($('dealer-cards-slider')?.value || 6, 10);
         await prepareNextRound(chosenCards);
